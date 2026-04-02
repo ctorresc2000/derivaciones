@@ -1,0 +1,86 @@
+<?php
+
+namespace App\Livewire\Ingresos;
+
+use Livewire\Attributes\On;
+use App\Models\Intervencion;
+use App\Models\AccionIntervencion;
+use Livewire\Component;
+
+class IntervencionesComponent extends Component
+{
+    public $abrirModal = false;
+
+    // Variables para el formulario del modal
+    public $intervencion_id;
+    public $descripcion_accion;
+
+    // Variable para guardar la lista de acciones anteriores
+    public $historialAcciones = [];
+
+    public function render()
+    {
+        return view('livewire.ingresos.intervenciones-component');
+    }
+
+    #[On('abrirModal')]
+    public function abrirModal($rowId)
+    {
+        // 1. Guardamos el ID correctamente
+        $this->intervencion_id = is_array($rowId) ? $rowId['rowId'] : $rowId;
+
+        // 2. Limpiamos la caja de texto
+        $this->descripcion_accion = '';
+
+        // 3. Cargamos el historial ANTES de abrir el modal
+        $this->cargarHistorial();
+
+        // 4. Abrimos el modal
+        $this->abrirModal = true;
+    }
+
+    // Función para buscar en la BD todas las acciones de esta intervención
+    public function cargarHistorial()
+    {
+        $this->historialAcciones = AccionIntervencion::with('usuario')
+            ->where('intervencion_id', $this->intervencion_id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
+    public function cerrarModal()
+    {
+        $this->abrirModal = false;
+    }
+
+    public function guardarAccion()
+    {
+        // Obligamos a que escriban al menos 5 letras
+        $this->validate([
+            'descripcion_accion' => 'required|min:5',
+        ]);
+
+        // Guardamos la nueva acción en la base de datos
+        AccionIntervencion::create([
+            'intervencion_id' => $this->intervencion_id,
+            'user_id' => auth()->id(),
+            'fecha' => now(),
+            'descripcion' => $this->descripcion_accion,
+        ]);
+
+        // En lugar de cerrar el modal, limpiamos el campo y recargamos la lista
+        $this->descripcion_accion = '';
+        $this->cargarHistorial();
+
+        // Refrescamos la tabla de PowerGrid en el fondo
+        $this->dispatch('pg:eventRefresh-intervencionesTable');
+
+        // Lanzamos una notificación de éxito con SweetAlert
+        $this->dispatch('swal', [
+            'icon' => 'success',
+            'title' => 'Excelente',
+            'text' => 'Acción guardada en el historial',
+            'timer' => 1500
+        ]);
+    }
+}
