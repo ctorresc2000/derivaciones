@@ -34,6 +34,17 @@
                     placeholder="Ej. Psicólogo, Orientador, Etc."
                 />
 
+                <flux:select
+                    label="Departamento"
+                    wire:model="departamento"
+                    placeholder="Selecciona un departamento"
+                >
+                    <option value="">Selecciona un departamento</option>
+                    <option value="Psicosocial">Psicosocial</option>
+                    <option value="Convivencia">Convivencia</option>
+                    <option value="Pedagógica">Pedagógica</option>
+                </flux:select>
+
                 <div class="flex justify-end">
                     <div calss="mr-3">
                         {{-- <flux:button variant="danger" wire:click="$set('abrirModal', false)" class="ml-3"> --}}

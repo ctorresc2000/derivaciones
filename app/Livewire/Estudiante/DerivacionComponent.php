@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\NotificacionCopiaMail;
 
 class DerivacionComponent extends Component
 {
@@ -167,7 +169,18 @@ class DerivacionComponent extends Component
             }
 
             if (!empty($this->usuariosSeleccionados)) {
-                $intervencion->copiasUsuarios()->attach($this->usuariosSeleccionados);
+                // 1. Buscamos a los usuarios dueños de los IDs seleccionados
+                $usuariosDestino = User::whereIn('id', $this->usuariosSeleccionados)->get();
+
+                // 2. Definimos qué tipo de registro es para el título del correo
+                $tipoRegistro = 'Derivación Psicosocial'; // Cámbialo a 'Intervención' según corresponda
+
+                // 3. Enviamos el correo a cada uno
+                foreach ($usuariosDestino as $usuario) {
+                    if (!empty($usuario->email)) {
+                        Mail::to($usuario->email)->send(new NotificacionCopiaMail($this->estudiante, $tipoRegistro));
+                    }
+                }
             }
 
         });

@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('tipointervencions', function (Blueprint $table) {
             $table->id();
             $table->string('tipo');
+            $table->enum('departamento', ['Psicosocial', 'Convivencia', 'Pedagógica'])->default('Pedagógica');
             $table->timestamps();
         });
     }

@@ -11,9 +11,9 @@
                     <a href="{{ route('estudiantes') }}" class="px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white text-sm font-semibold rounded-md shadow-sm transition-colors">
                         <i class="fa-solid fa-arrow-left mr-2"></i> Volver
                     </a>
-                    <button class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-md shadow-sm transition-colors cursor-not-allowed opacity-70" title="Próximamente">
-                        <i class="fa-solid fa-file-pdf mr-2"></i> Exportar PDF
-                    </button>
+                    <a href="{{ route('historial.pdf', $estudiante->id) }}" target="_blank" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-md shadow-sm transition-colors cursor-pointer inline-flex items-center">
+                        <i class="fa-solid fa-file-pdf mr-2"></i> Ver PDF
+                    </a>
                 </div>
             </div>
 

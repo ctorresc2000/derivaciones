@@ -9,7 +9,8 @@ class Tipoprofesional extends Model
     protected $table = 'tipo_profesionals';
 
     protected $fillable = [
-        'tipo'
+        'tipo',
+        'departamento'
     ];
 
     // Un Tipo tiene Muchos Usuarios (Profesionales)

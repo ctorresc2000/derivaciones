@@ -16,6 +16,8 @@ use App\Livewire\User\TipoprofesionalComponent;
 use App\Livewire\User\UserComponent;
 use App\Livewire\Estudiante\HistorialComponent;
 use Illuminate\Support\Facades\Route;
+use App\Models\Estudiante;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 Route::redirect('/', '/login')->name('home');
 
@@ -38,6 +40,67 @@ Route::get('/motivointervencion', MotivointervencionComponent::class)->name('mot
 Route::get('/tipointervencion', TipointervencionComponent::class)->name('tipointervencion');
 Route::get('/estudiantesderivados', EstudiantederivadoComponent::class)->name('estudiantesderivados');
 Route::get('/intervenciones', IntervencionesComponent::class)->name('intervenciones');
+
+// Ruta para el historial del estudiante
+
+Route::get('/estudiante/{id}/historial-pdf', function ($id) {
+        // 1. Buscamos al estudiante con sus datos
+        $estudiante = Estudiante::with([
+            'intervenciones.usuario', 'intervenciones.detalles.falta', 'intervenciones.detalles.medida',
+            'derivaciones.user', 'derivaciones.profesionalDerivado', 'derivaciones.motivo'
+        ])->findOrFail($id);
+
+        // 2. Preparamos las intervenciones
+        $intervenciones = $estudiante->intervenciones->map(function ($item) {
+            $detalle = $item->detalles->first();
+            return (object) [
+                'tipo_registro' => 'Intervención de convivencia escolar',
+                'fecha' => $item->fecha_incidente ?? $item->created_at,
+                'hora' => $item->created_at->format('H:i'),
+                'profesional' => ($item->usuario->name ?? 'Usuario Desconocido'),
+                'detalle' => $item->descripcion,
+                'estado' => $item->estado,
+                'etiqueta_1' => 'Tipo de Falta',
+                'valor_1' => $detalle ? ($detalle->falta->falta ?? $detalle->falta->tipo_falta ?? 'No especificada') : 'No especificada',
+                'etiqueta_2' => 'Tipo de Medida',
+                'valor_2' => $detalle ? ($detalle->medida->medida ?? $detalle->tipo_medida ?? 'No especificada') : 'No especificada',
+            ];
+        });
+
+        // 3. Preparamos las derivaciones
+        $derivaciones = $estudiante->derivaciones->map(function ($item) {
+            $nombreMotivo = $item->motivo->motivo ?? 'Motivo desconocido';
+            return (object) [
+                'tipo_registro' => 'Derivación: ' . $nombreMotivo,
+                'fecha' => $item->fecha_derivacion,
+                'hora' => $item->created_at->format('H:i'),
+                'profesional' => ($item->profesionalDerivado->name ?? $item->user->name ?? 'Usuario Desconocido'),
+                'detalle' => $item->detalle_derivacion,
+                'estado' => $item->estado,
+                'etiqueta_1' => 'Motivo Derivación',
+                'valor_1' => $nombreMotivo,
+                'etiqueta_2' => 'Tipo de Intervención',
+                'valor_2' => $item->tipo_intervencion ?? 'Intervención Psicosocial',
+            ];
+        });
+
+        // 4. Juntamos todo y lo ordenamos por fecha
+        $historial = $intervenciones->concat($derivaciones)->sortByDesc(function ($item) {
+            return \Carbon\Carbon::parse($item->fecha)->format('Y-m-d') . ' ' . $item->hora;
+        })->values()->all();
+
+        // 5. Generamos el PDF
+        $pdf = Pdf::loadView('pdf.historial-estudiante', [
+            'estudiante' => $estudiante,
+            'historial' => $historial
+        ]);
+
+        // 👇 LA MAGIA ESTÁ AQUÍ: stream() hace que se visualice en lugar de descargar 👇
+        return $pdf->stream('Historial_' . $estudiante->rut . '.pdf');
+
+    })->name('historial.pdf');
+
+    // Ruta para el historial del estudiante en la vista Livewire
 
 Route::get('/estudiante/{id}/historial', HistorialComponent::class)->name('estudiante.historial');
 

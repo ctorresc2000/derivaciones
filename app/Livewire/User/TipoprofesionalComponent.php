@@ -10,6 +10,7 @@ class TipoprofesionalComponent extends Component
 
     public $abrirModal=false;
     public $nombre;
+    public $departamento;
 
     public function render()
     {
@@ -20,17 +21,19 @@ class TipoprofesionalComponent extends Component
     {
         $this->abrirModal = false;
         $this->resetValidation();
-        $this->reset('nombre');
+        $this->reset('nombre', 'departamento');
     }
 
     public function guardar()
     {
         $this->validate([
             'nombre' => 'required',
+            'departamento' => 'required'
         ]);
 
         Tipoprofesional::create([
             'tipo' => $this->nombre,
+            'departamento' => $this->departamento
 
         ]);
 
@@ -44,6 +47,6 @@ class TipoprofesionalComponent extends Component
         $this->abrirModal = false;
         $this->dispatch('refreshTable');
         $this->resetValidation();
-        $this->reset('nombre');
+        $this->reset('nombre', 'departamento');
     }
 }

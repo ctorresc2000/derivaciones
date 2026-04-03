@@ -44,7 +44,7 @@ final class IntervencionesTable extends PowerGridComponent
     public function datasource(): Builder
     {
         $anioActivo = session('anio_activo', date('Y'));
-        return Intervencion::query()->with(['user', 'estudiante'])
+        return Intervencion::query()->with(['user', 'estudiante', 'detalles.falta', 'detalles.medida'])
                 ->whereYear('created_at', $anioActivo);
                 //->where('user_id', auth()->id());
     }

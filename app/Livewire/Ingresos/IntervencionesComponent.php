@@ -7,6 +7,11 @@ use App\Models\Intervencion;
 use App\Models\AccionIntervencion;
 use Livewire\Component;
 
+use App\Models\Intervencioncopia;
+use Illuminate\Support\Facades\Mail;
+use App\Models\User;
+use App\Mail\NotificacionCopiaMail;
+
 class IntervencionesComponent extends Component
 {
     public $abrirModal = false;
@@ -72,6 +77,8 @@ class IntervencionesComponent extends Component
         $this->descripcion_accion = '';
         $this->cargarHistorial();
 
+        Mail::to($usuario->email)->send(new NotificacionCopiaMail($this->estudiante, $tipoRegistro, $nuevaIntervencion));
+
         // Refrescamos la tabla de PowerGrid en el fondo
         $this->dispatch('pg:eventRefresh-intervencionesTable');
 
@@ -83,4 +90,22 @@ class IntervencionesComponent extends Component
             'timer' => 1500
         ]);
     }
+
+    // public function guardarAccion()
+    // {
+    //     // Validar que escribió algo
+    //     $this->validate(['nuevaAccionTexto' => 'required']);
+
+    //     // Usar el modelo que me acabas de mostrar para guardar en la BD
+    //     AccionIntervencion::create([
+    //         'intervencion_id' => $this->intervencionSeleccionadaId,
+    //         'user_id' => auth()->id(),
+    //         'fecha' => now(),
+    //         'descripcion' => $this->nuevaAccionTexto
+    //     ]);
+
+    //     // Limpiar el campo y actualizar la lista
+    //     $this->nuevaAccionTexto = '';
+    //     $this->cargarAcciones();
+    // }
 }
