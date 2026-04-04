@@ -197,7 +197,9 @@ class DerivacionComponent extends Component
             'icon' => 'success',
             'title' => 'Felicitaciones',
             'text' => 'Registro Guardado Exitósamente',
-            'timer' => 1500
+            'timer' => 2500
         ]);
+
+        redirect()->route('estudiantes');
     }
 }

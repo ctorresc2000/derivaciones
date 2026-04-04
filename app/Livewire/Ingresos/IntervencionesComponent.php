@@ -7,10 +7,15 @@ use App\Models\Intervencion;
 use App\Models\AccionIntervencion;
 use Livewire\Component;
 
+use App\Models\Estudiante;
+
+
+
 use App\Models\Intervencioncopia;
 use Illuminate\Support\Facades\Mail;
 use App\Models\User;
 use App\Mail\NotificacionCopiaMail;
+use id;
 
 class IntervencionesComponent extends Component
 {

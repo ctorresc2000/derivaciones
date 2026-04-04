@@ -5,6 +5,7 @@ namespace App\Livewire\Estudiante;
 use App\Models\Estudiante;
 use App\Models\Intervencion;
 use App\Models\Derivarestudiante;
+use App\Models\Tipoprofesional;
 use Livewire\Component;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -125,7 +126,7 @@ class HistorialComponent extends Component
                 'id' => $item->id,
                 'modelo_tipo' => 'intervencion',
                 'cantidad_documentos' => $item->documents->count(),
-                'tipo_registro' => 'Intervención de convivencia escolar',
+                'tipo_registro' => 'Intervenido por : Departamento ' . ($item->usuario->tipoprofesional->departamento ?? 'Usuario Desconocido'),
                 'fecha' => $item->fecha_incidente ?? $item->created_at,
                 'hora' => $item->created_at->format('H:i'),
                 'profesional' => ($item->usuario->name ?? 'Usuario Desconocido'),

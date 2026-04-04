@@ -296,7 +296,7 @@
             <hr class="mt-2 mb-2">
             <div class="flex justify-end px-6">
                 <flux:button wire:click="guardarDerivacion">
-                    <i class="fa-solid fa-floppy-disk"></i><span class="ml-3">Guardar</span>
+                    <i class="fa-solid fa-floppy-disk"></i><span class="ml-3">Guarda</span>
                 </flux:button>
             </div>
 

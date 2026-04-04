@@ -142,13 +142,13 @@ final class TipoprofesionalTable extends PowerGridComponent
     public function updateAreaControl($id, $value)
     {
         // Buscas el modelo y actualizas el campo
-        $profesional = TipoProfesional::find($id);
+        $profesional = Tipoprofesional::find($id);
         $profesional->update(['departamento' => $value]);
 
         // Opcional: mostrar un mensaje de éxito
         $this->dispatch('swal', [
             'icon' => 'success',
-            'title' => 'Área Actualizada',
+            'title' => 'Departamento Actualizado',
             'timer' => 1000
         ]);
     }
