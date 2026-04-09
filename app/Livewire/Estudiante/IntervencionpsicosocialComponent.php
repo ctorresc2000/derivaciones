@@ -3,20 +3,21 @@
 namespace App\Livewire\Estudiante;
 
 use App\Models\Estudiante;
-use App\Models\Intervencion;
 use App\Models\Motivointervencion;
-use App\Models\Profesional;
 use App\Models\Tipointervencion;
+use App\Models\Intervencion;
+use App\Models\Profesional;
 use App\Models\User;
 use App\Models\Viaingreso;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\NotificacionCopiaMail;
 
 class IntervencionpsicosocialComponent extends Component
 {
-
     use WithFileUploads;
 
     public $estudiante;
@@ -31,7 +32,6 @@ class IntervencionpsicosocialComponent extends Component
     public $usuariosSeleccionados = [];
     public $via_ingreso_id;
 
-    // VARIABLES PARA NUESTRA TABLA DINÁMICA
     public $motivo_seleccionado_id = '';
     public $tipo_seleccionado_id = '';
     public $listaDatosAgregados = [];
@@ -44,148 +44,118 @@ class IntervencionpsicosocialComponent extends Component
 
     public function mount($id)
     {
-
         $this->estudiante = Estudiante::findOrFail($id);
         $this->profesionales = Profesional::all();
-        $this->viaingresos=Viaingreso::orderBy('via_ingreso','asc')->get();
-        $this->motivos=Motivointervencion::orderBy('motivo','asc')->get();
-        $this->tipos = Tipointervencion::orderBy('tipo','asc')->get();
-        $this->listaUsuarios = User::where('estado', 'Activo')->get();
-    }
-
-    public function updatedViaIngresoId($value)
-    {
-        if ($value === 'otro') {
-            $this->dispatch('pedir-nueva-via');
-        }
-    }
-
-    public function guardarNuevaVia($nombreVia)
-    {
-        $nombreVia = trim($nombreVia);
-
-        if (!empty($nombreVia)) {
-            $nuevaVia = \App\Models\Viaingreso::create([
-                'via_ingreso' => $nombreVia
-            ]);
-
-            $this->viaingresos = \App\Models\Viaingreso::all();
-            $this->via_ingreso_id = $nuevaVia->id;
-            $this->dispatch('notificacion', mensaje: 'Vía de ingreso creada con éxito');
-        }
+        $this->viaingresos = Viaingreso::all();
+        $this->motivos = Motivointervencion::all();
+        $this->tipos = Tipointervencion::all();
+        $this->listaUsuarios = User::all();
     }
 
     public function agregarDato()
     {
-        if (empty($this->motivo_seleccionado_id) || empty($this->tipo_seleccionado_id)) {
-            $this->dispatch('swal', [
-                'icon' => 'warning',
-                'title' => 'Atención',
-                'text' => 'Por favor selecciona tanto el Tipo de Falta como la Medida.'
-            ]);
+        // 1. Validar que se seleccionaron ambos IDs
+        if (!$this->motivo_seleccionado_id || !$this->tipo_seleccionado_id) {
             return;
         }
 
+        // 2. Buscar directamente en el Modelo (importa los modelos arriba)
+        // Esto evita depender de si la colección $this->motivos sigue viva o no
         $motivo = \App\Models\Motivointervencion::find($this->motivo_seleccionado_id);
         $tipo = \App\Models\Tipointervencion::find($this->tipo_seleccionado_id);
 
         if ($motivo && $tipo) {
-            $nuevoDato = [
-                'falta_id'      => $motivo->id,
-                'falta_nombre'  => $motivo->motivo,
-                'medida_id'     => $tipo->id,
-                'medida_nombre' => $tipo->tipo,
+            // 3. Agregar al array con las llaves que espera tu Blade
+            $this->listaDatosAgregados[] = [
+                'motivo_id'     => $this->motivo_seleccionado_id,
+                'motivo_nombre' => $motivo->motivo, // Ajusta si la columna se llama diferente
+                'tipo_id'       => $this->tipo_seleccionado_id,
+                'tipo_nombre'   => $tipo->tipo,   // Ajusta si la columna se llama diferente
+                //'detalle'       => $this->detalle_registro,
             ];
 
-            if ($this->editando_index !== null) {
-                $this->listaDatosAgregados[$this->editando_index] = $nuevoDato;
-                $this->editando_index = null;
-            } else {
-                $this->listaDatosAgregados[] = $nuevoDato;
-            }
+            //dd($this->listaDatosAgregados);
 
-            $this->limpiarFormularioDatos();
+            // 4. Limpiar los selectores
+            $this->reset(['motivo_seleccionado_id', 'tipo_seleccionado_id']);
         }
     }
 
-    public function eliminarDato($index)
+    public function quitarDato($index)
     {
         unset($this->listaDatosAgregados[$index]);
         $this->listaDatosAgregados = array_values($this->listaDatosAgregados);
-
-        if ($this->editando_index === $index) {
-            $this->limpiarFormularioDatos();
-        }
-    }
-
-    public function limpiarFormularioDatos()
-    {
-        $this->motivo_seleccionado_id = '';
-        $this->tipo_seleccionado_id= '';
-        $this->editando_index = null;
     }
 
     public function guardarDerivacion()
     {
         $this->validate([
             'via_ingreso_id' => 'required',
-            'descripcion_derivacion' => 'required|min:10',
+            'descripcion_derivacion' => 'required',
         ]);
 
         DB::transaction(function () {
-
             $intervencion = Intervencion::create([
-                'estudiante_id'  => $this->estudiante->id,
-                'usuario_id' => Auth::id(),
+                'estudiante_id' => $this->estudiante->id,
+                'usuario_id' => Auth::user()->id,
+                'fecha' => now(),
                 'via_ingreso_id' => $this->via_ingreso_id,
-                'descripcion'    => $this->descripcion_derivacion,
-                'fecha'          => now(),
+                'descripcion' => $this->descripcion_derivacion,
+                'tipo_intervencion' => 'Psicosocial',
+                'estado' => 'Abierta',
             ]);
 
-            if (!empty($this->listaDatosAgregados)) {
-                foreach ($this->listaDatosAgregados as $item) {
-                    $intervencion->detalles()->create([
-                        'falta_id'  => $item['falta_id'],
-                        'medida_id' => $item['medida_id'],
-                    ]);
-                }
+            foreach ($this->listaDatosAgregados as $item) {
+                $intervencion->detalles()->create([
+                    'motivo_intervencion_id' => $item['motivo_id'],
+                    'tipo_intervencion_id' => $item['tipo_id'],
+                    'falta_id' => null,
+                    'medida_id' => null,
+                ]);
             }
 
-            // 👇 LO NUEVO: Guardado polimórfico de múltiples archivos 👇
-            if (!empty($this->archivos)) {
-                foreach ($this->archivos as $archivo) {
-
-                    // Ordenamos los archivos por ID de intervención
-                    $rutaFisica = $archivo->store("documents/intervenciones/{$intervencion->id}", 'public');
-
-                    $intervencion->documents()->create([
-                        'name'      => $archivo->getClientOriginalName(),
-                        'file_path' => $rutaFisica,
-                        'mime_type' => $archivo->getClientMimeType(),
-                        'size'      => $archivo->getSize(),
-                    ]);
-                }
-            }
+           // dd($this->listaDatosAgregados);
 
             if (!empty($this->usuariosSeleccionados)) {
-                $intervencion->copiasUsuarios()->attach($this->usuariosSeleccionados);
+                $usuariosDestino = User::whereIn('id', $this->usuariosSeleccionados)->get();
+                $tipoRegistro = 'Intervención Psicosocial';
+
+                foreach ($usuariosDestino as $usuario) {
+                    if ($usuario->email) {
+                        // Importante: Cargar las relaciones correctas para el Mail
+                        $intervencion->load('detalles.motivoIntervencion', 'detalles.tipoIntervencion');
+                        Mail::to($usuario->email)->send(new NotificacionCopiaMail($this->estudiante, $tipoRegistro, $intervencion, $this->listaDatosAgregados));
+                    }
+                }
             }
-
         });
-
-        $this->reset([
-            'via_ingreso_id',
-            'descripcion_derivacion',
-            'listaDatosAgregados',
-            'usuariosSeleccionados',
-            'archivos'
-        ]);
 
         $this->dispatch('swal', [
             'icon' => 'success',
             'title' => 'Felicitaciones',
             'text' => 'Registro Guardado Exitósamente',
-            'timer' => 1500
+            'timer' => 2500
         ]);
+
+        return redirect()->route('estudiantes');
     }
+
+    // En IntervencionpsicosocialComponent.php
+
+public function updatedViaIngresoId($value)
+{
+    if ($value === 'otro') {
+        $this->dispatch('pedir-nueva-via');
+    }
+}
+
+public function guardarNuevaVia($nombre)
+{
+    $nuevaVia = Viaingreso::create(['via_ingreso' => $nombre]);
+    $this->viaingresos = Viaingreso::all(); // Recargar lista
+    $this->via_ingreso_id = $nuevaVia->id;
+}
+
+// Asegúrate de que agregarDato use los nombres de llaves correctos para la tabla
+
 }

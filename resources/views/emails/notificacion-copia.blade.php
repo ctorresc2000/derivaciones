@@ -1,34 +1,60 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Notificación de Convivencia Escolar</title>
+    <style>
+        .tabla-info { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; }
+        .tabla-info td, .tabla-info th { border: 1px solid #e2e8f0; padding: 12px; text-align: left; }
+        .header-tabla { background-color: #2563eb; color: white; font-weight: bold; }
+        .label { background-color: #f8fafc; font-weight: bold; width: 30%; color: #475569; }
+        .observaciones { background-color: #fffbeb; border: 1px solid #fef3c7; padding: 15px; margin-top: 10px; font-style: italic; }
+    </style>
 </head>
-<body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
-    <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-        <h2 style="color: #2563eb;">Nueva {{ $tipoRegistro }}</h2>
+<body>
+    <h2>Notificación de Registro: {{ $tipoRegistro }}</h2>
+    <p>Se ha registrado una nueva actividad para el estudiante: <strong>{{ $estudiante->nombre }} {{ $estudiante->apellido }}</strong></p>
 
-        <p>Estimado/a Funcionario/a,</p>
-        <p>Se le ha enviado una copia informativa sobre el siguiente registro:</p>
+    <table style="width: 100%; border-collapse: collapse; font-family: sans-serif;">
+        <thead>
+            <tr style="background-color: #2563eb; color: white;">
+                {{-- Cambiamos los encabezados dinámicamente --}}
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">
+                    {{ str_contains($tipoRegistro, 'Psicosocial') ? 'Motivo' : 'Falta' }}
+                </th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">
+                    {{ str_contains($tipoRegistro, 'Psicosocial') ? 'Tipo de Atención' : 'Medida' }}
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($datosVista as $item)
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">
+                        {{-- Mostramos nombre_falta o nombre_motivo según exista en el array --}}
+                        {{ $item['falta_nombre'] ?? $item['motivo_nombre'] ?? 'N/A' }}
+                    </td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">
+                        {{-- Mostramos nombre_medida o nombre_tipo --}}
+                        {{ $item['medida_nombre'] ?? $item['tipo_nombre'] ?? 'N/A' }}
 
-        <div style="background-color: #f8fafc; padding: 15px; border-left: 4px solid #2563eb; margin: 20px 0;">
-            <p><strong>Estudiante:</strong> {{ $estudiante->nombre }} {{ $estudiante->apellido }}</p>
-            <p><strong>Fecha:</strong> {{ now()->format('d-m-Y H:i') }}</p>
+                        @if(!empty($item['detalle']))
+                            <div style="font-size: 0.85em; color: #666; margin-top: 4px;">
+                                <strong>Detalle:</strong> {{ $item['detalle'] }}
+                            </div>
+                        @endif
+                    </td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
 
-            {{-- Si es una Intervención, mostramos detalles específicos --}}
-            @if($tipoRegistro == 'Intervención Espontánea')
-                @php $detalle = collect($registro->detalles)->first(); @endphp
-                <p><strong>Tipo de Falta:</strong> {{ data_get($detalle, 'falta.nombre') ?? 'No especificada' }}</p>
-                <p><strong>Medida Aplicada:</strong> {{ data_get($detalle, 'medida.nombre') ?? 'No especificada' }}</p>
-                <p><strong>Observación:</strong> {{ data_get($detalle, 'descripcion') ?? $registro->descripcion }}</p>
-            @else
-                {{-- Si es Derivación, mostramos lo básico --}}
-                <p><strong>Motivo/Antecedentes:</strong> {{ $registro->previos_derivacion ?? 'Ver en sistema' }}</p>
-            @endif
-        </div>
-
-        <p>Para más detalles y seguimiento, por favor ingrese al sistema.</p>
-        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-        <p style="font-size: 12px; color: #777;">Sistema de Convivencia LTSM - Enviado por: {{ auth()->user()->name }}</p>
+    <h3>Observaciones / Descripción:</h3>
+    <div class="observaciones">
+        {{-- Aquí mostramos el detalle principal --}}
+        {{ $registro->descripcion ?? $registro->descripcion_derivacion ?? 'Sin observaciones detalladas.' }}
     </div>
+
+    <p style="font-size: 12px; color: #64748b; margin-top: 20px;">
+        Este es un correo automático, por favor no responder.
+    </p>
 </body>
 </html>

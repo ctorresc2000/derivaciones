@@ -24,10 +24,12 @@
 
             <flux:sidebar.nav>
                 <flux:sidebar.group :heading="__('Administración')" class="grid">
+                @if (Auth()->user()->rol=="Administrador")
                     <flux:sidebar.item :href="route('usuarios')" :current="request()->routeIs('usuarios')" wire:navigate>
                         <i class="fa-solid fa-user"></i>
                         <span class="ml-3">Usuarios</span>
                     </flux:sidebar.item>
+                @endif
 
                     <flux:sidebar.item  :href="route('estudiantes')" :current="request()->routeIs('estudiantes')" wire:navigate>
                         <i class="fa-solid fa-user-graduate"></i>
@@ -38,7 +40,7 @@
                         <i class="fa-solid fa-person"></i>
                         <span class="ml-3">Profesionales</span>
                     </flux:sidebar.item> --}}
-
+                @if (Auth()->user()->rol=="Administrador")
                     <flux:sidebar.item :href="route('cursos')" :current="request()->routeIs('cursos')" wire:navigate>
                         <i class='fa-solid fa-school'></i>
                         <span class="ml-3">Cursos</span>
@@ -85,8 +87,8 @@
                         <i class="fa-solid fa-person-circle-question"></i>
                         <span class="ml-3">Tipos de Intervención</span>
                     </flux:sidebar.item>
-
                 </flux:sidebar.group>
+                @endif
             </flux:sidebar.nav>
 
             <flux:sidebar.nav>

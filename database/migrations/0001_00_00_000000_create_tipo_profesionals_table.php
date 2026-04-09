@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('tipo_profesionals', function (Blueprint $table) {
             $table->id();
             $table->string('tipo');
+            $table->enum('departamento', ['Psicosocial', 'Pedagógico', 'Convivencia'])->default('Convivencia');
             $table->timestamps();
         });
     }

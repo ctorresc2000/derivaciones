@@ -6,9 +6,10 @@ use App\Models\Derivarestudiante;
 use App\Models\Estudiante;
 use App\Models\Intervencion;
 use App\Models\User;
-use Illuminate\Support\Facades\Auth;
+use id;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use PowerComponents\LivewirePowerGrid\Button;
 use PowerComponents\LivewirePowerGrid\Column;
 use PowerComponents\LivewirePowerGrid\Facades\Filter;
@@ -44,9 +45,16 @@ final class IntervencionesTable extends PowerGridComponent
     public function datasource(): Builder
     {
         $anioActivo = session('anio_activo', date('Y'));
-        return Intervencion::query()->with(['user', 'estudiante', 'detalles.falta', 'detalles.medida'])
-                ->whereYear('created_at', $anioActivo);
-                //->where('user_id', auth()->id());
+        $user = auth()->user();
+
+        return Intervencion::query()
+            ->with(['user', 'estudiante', 'detalles.falta', 'detalles.medida','detalles.tipo', 'detalles.motivo'])
+            ->whereYear('created_at', $anioActivo)
+            ->when($user->rol !== 'Administrador', function ($query) use ($user) {
+                // Si NO es Administrador, filtramos por su usuario_id
+                $query->where('usuario_id', $user->id);
+            });
+            // Si ES Administrador, el 'when' se ignora y muestra todos los registros
     }
 
     public function relationSearch(): array
@@ -135,9 +143,9 @@ final class IntervencionesTable extends PowerGridComponent
             Column::make('Via ingreso','via_ingreso', 'via_ingreso_id')
                 ->sortable()
                 ->searchable(),
-            Column::make('Descripcion', 'descripcion')
-                ->sortable()
-                ->searchable(),
+            // Column::make('Descripcion', 'descripcion')
+            //     ->sortable()
+            //     ->searchable(),
 
 
             // Column::make('Estado','estado_badge', 'estado')

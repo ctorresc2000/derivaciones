@@ -2,19 +2,20 @@
 
 namespace App\Livewire\Tablas;
 
-use App\Models\Estudiante;
 use App\Models\Curso;
 use App\Models\Estado;
-use Illuminate\Support\Carbon;
+use App\Models\Estudiante;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use PowerComponents\LivewirePowerGrid\Button;
 use PowerComponents\LivewirePowerGrid\Column;
 use PowerComponents\LivewirePowergrid\Detail;
-use PowerComponents\LivewirePowerGrid\Facades\Rule;
 use PowerComponents\LivewirePowerGrid\Facades\Filter;
 use PowerComponents\LivewirePowerGrid\Facades\PowerGrid;
-use PowerComponents\LivewirePowerGrid\PowerGridFields;
+use PowerComponents\LivewirePowerGrid\Facades\Rule;
 use PowerComponents\LivewirePowerGrid\PowerGridComponent;
+use PowerComponents\LivewirePowerGrid\PowerGridFields;
 
 
 final class EstudianteTable extends PowerGridComponent
@@ -281,45 +282,77 @@ final class EstudianteTable extends PowerGridComponent
         $iconoEstado = $esActivo ? 'fa-solid fa-user-xmark' : 'fa-solid fa-user-check';
         $textoEstado = $esActivo ? 'Desactivar Estudiante' : 'Activar Estudiante';
 
+
         $botones= [
-            Button::add('edit')
+            // Button::add('edit')
+            //     ->slot('<i class="fa-solid fa-pen-to-square"></i>')
+            //     ->id('btn-edit-' . $row->id)
+            //     ->tooltip('Editar estudiante')
+            //     ->class('p-2 rounded bg-blue-500 text-white hover:bg-blue-600')
+            //     ->dispatch('edit', ['rowId' => $row->id]),
+
+            // NUESTRO NUEVO BOTÓN DINÁMICO DE ESTADO
+            // Button::add('toggle_estado')
+            // ->slot('<i class="' . $iconoEstado . '"></i>')
+            // ->id('btn-estado-' . $row->id)
+            // ->tooltip($textoEstado)
+            // ->class('p-2 rounded text-white ' . $colorEstado)
+            // ->dispatch('toggleEstado', ['rowId' => $row->id]), // Llama a nuestra función del Paso 1
+
+            // 3. NUESTRO BOTÓN DE DETALLES USANDO PHP PURO
+            // Button::add('btn_detalle')
+            // ->slot('<i class="' . $icono . '"></i>')
+            // ->id('btn-detalle-' . $row->id)
+            // ->tooltip($textoTooltip)
+            // ->class('p-2 rounded text-white ' . $colorBoton)
+            // // Disparamos nuestro evento, exactamente igual a como lo haces con 'delete' o 'edit'
+            // ->dispatch('alternarDetalle', ['id' => $row->id]),
+        ];
+
+        if (Auth::user()->rol === "Administrador") {
+            $botones[]=
+                Button::add('edit')
                 ->slot('<i class="fa-solid fa-pen-to-square"></i>')
                 ->id('btn-edit-' . $row->id)
                 ->tooltip('Editar estudiante')
                 ->class('p-2 rounded bg-blue-500 text-white hover:bg-blue-600')
-                ->dispatch('edit', ['rowId' => $row->id]),
+                ->dispatch('edit', ['rowId' => $row->id]);
 
-            // NUESTRO NUEVO BOTÓN DINÁMICO DE ESTADO
-            Button::add('toggle_estado')
+            $botones[]=
+                Button::add('toggle_estado')
                 ->slot('<i class="' . $iconoEstado . '"></i>')
                 ->id('btn-estado-' . $row->id)
                 ->tooltip($textoEstado)
                 ->class('p-2 rounded text-white ' . $colorEstado)
-                ->dispatch('toggleEstado', ['rowId' => $row->id]), // Llama a nuestra función del Paso 1
+                ->dispatch('toggleEstado', ['rowId' => $row->id]);
+        }
 
-            // 3. NUESTRO BOTÓN DE DETALLES USANDO PHP PURO
+        $botones[]=
             Button::add('btn_detalle')
-                ->slot('<i class="' . $icono . '"></i>')
-                ->id('btn-detalle-' . $row->id)
-                ->tooltip($textoTooltip)
-                ->class('p-2 rounded text-white ' . $colorBoton)
-                // Disparamos nuestro evento, exactamente igual a como lo haces con 'delete' o 'edit'
-                ->dispatch('alternarDetalle', ['id' => $row->id]),
-        ];
+            ->slot('<i class="' . $icono . '"></i>')
+            ->id('btn-detalle-' . $row->id)
+            ->tooltip($textoTooltip)
+            ->class('p-2 rounded text-white ' . $colorBoton)
+            // Disparamos nuestro evento, exactamente igual a como lo haces con 'delete' o 'edit'
+            ->dispatch('alternarDetalle', ['id' => $row->id]);
 
-        if ($row->estado === "Activo") {
+        if ($row->estado === "Activo" && Auth::user()->rol==="Administrador" || Auth::user()->tipoProfesional->departamento === "Convivencia") {
             $botones[]=Button::add('enviar')
-                ->slot('<i class="fa-solid fa-scale-balanced"></i>')
-                ->tooltip('Intervenir por Convivencia')
-                ->class('p-2 rounded bg-green-500 text-white hover:bg-green-600')
-                ->route('derivaciones', ['id' => $row->id]);
+            ->slot('<i class="fa-solid fa-scale-balanced"></i>')
+            ->tooltip('Intervenir por Convivencia')
+            ->class('p-2 rounded bg-green-500 text-white hover:bg-green-600')
+            ->route('derivaciones', ['id' => $row->id]);
+        }
 
+        if ($row->estado === "Activo" && Auth::user()->rol==="Administrador" || Auth::user()->tipoProfesional->departamento === "Psicosocial") {
             $botones[]=Button::add('psicosocial')
                 ->slot('<i class="fa-solid fa-hand-holding-heart"></i>')
-                ->tooltip('Intervenir por Psicosicial')
+                ->tooltip('Intervenir por Psicosocial')
                 ->class('p-2 rounded bg-teal-500 text-white hover:bg-teal-600')
                 ->route('intervencionpsicosocial', ['id' => $row->id]);
+        }
 
+        if ($row->estado === "Activo") {
             $botones[]=Button::add('estudianteDerivado')
                 ->slot('<i class="fa-solid fa-file-export"></i> ')
                 ->tooltip('Derivar')
@@ -333,6 +366,8 @@ final class EstudianteTable extends PowerGridComponent
             ->tooltip('Historial Estudiante')
             ->class('p-2 rounded bg-zinc-500 text-white hover:bg-zinc-600')
             ->route('estudiante.historial', ['id' => $row->id]); // <-- Cambiamos la ruta aquí
+
+
         return $botones;
     }
 

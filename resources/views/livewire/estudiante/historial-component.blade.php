@@ -1,192 +1,212 @@
-<div>
-    <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+<div class="max-w-7xl mx-auto py-8 px-4">
+    <div class="bg-white rounded-t-xl border p-6">
 
-        <div class="bg-white dark:bg-zinc-900 rounded-t-lg shadow-sm border border-slate-200 dark:border-zinc-800 p-6 mb-0">
-            <div class="flex justify-between items-center mb-4">
-                <h1 class="text-2xl font-bold text-slate-800 dark:text-white">
-                    <i class="fa-solid fa-clock-rotate-left mr-2 text-zinc-500"></i> Historial del Estudiante
-                </h1>
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-slate-800">Historial Estudiantil</h1>
+            <div class="flex gap-2">
+                <a href="{{ route('historial.pdf', $estudiante->id) }}"
+                target="_blank"
+                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-2">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    Imprimir PDF
+                </a>
 
-                <div class="flex gap-2">
-                    <a href="{{ route('estudiantes') }}" class="px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white text-sm font-semibold rounded-md shadow-sm transition-colors">
-                        <i class="fa-solid fa-arrow-left mr-2"></i> Volver
-                    </a>
-                    <a href="{{ route('historial.pdf', $estudiante->id) }}" target="_blank" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-md shadow-sm transition-colors cursor-pointer inline-flex items-center">
-                        <i class="fa-solid fa-file-pdf mr-2"></i> Ver PDF
-                    </a>
-                </div>
-            </div>
-
-            {{-- TARJETA DE INFORMACIÓN DEL ESTUDIANTE CON BOTÓN DE ADJUNTOS --}}
-            <div class="bg-slate-50 dark:bg-zinc-800/50 p-4 rounded-lg border border-slate-100 dark:border-zinc-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0">
-                        <i class="fa-solid fa-user-graduate text-blue-600 dark:text-blue-400 text-xl"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-bold text-slate-800 dark:text-white leading-tight">
-                            {{ $estudiante->nombre }} {{ $estudiante->apellido }}
-                        </h2>
-                        <p class="text-sm text-slate-500 dark:text-zinc-400">
-                            RUT: {{ $estudiante->rut }} | Curso: {{ $estudiante->curso->nombre_curso ?? 'N/A' }}
-                        </p>
-                    </div>
-                </div>
-
-                {{-- Sección de Documentos Adjuntos del Estudiante --}}
-                <div class="flex-shrink-0">
-                    @if($estudiante->documents && $estudiante->documents->count() > 0)
-                        <button wire:click="mostrarArchivos({{ $estudiante->id }}, 'estudiante')"
-                                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 shadow-sm cursor-pointer">
-                            <i class="fa-solid fa-paperclip text-lg"></i>
-                            Ver Documentos Base ({{ $estudiante->documents->count() }})
-                        </button>
-                    @else
-                        <span class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-500 bg-slate-50 rounded-lg dark:bg-zinc-800/50 dark:text-slate-400 border border-slate-200 dark:border-zinc-700">
-                            <i class="fa-solid fa-file-circle-xmark text-lg"></i>
-                            Sin documentos base
-                        </span>
-                    @endif
-                </div>
+                <a href="{{ route('estudiantes') }}"
+                class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-bold border hover:bg-slate-200 transition-colors">
+                    Volver
+                </a>
             </div>
         </div>
+        {{-- <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-slate-800">Historial Estudiantil</h1>
+            <a href="{{ route('estudiantes') }}" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-bold border">Volver</a>
+        </div> --}}
 
-        <div class="bg-white dark:bg-zinc-900 rounded-b-lg shadow-sm border-x border-b border-slate-200 dark:border-zinc-800 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50 dark:bg-zinc-800/50 border-b border-slate-200 dark:border-zinc-800">
-                            <th class="p-4 text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider w-32">Fecha / Hora</th>
-                            <th class="p-4 text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Tipo / Estado</th>
-                            <th class="p-4 text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Profesional Responsable</th>
-                            <th class="p-4 text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Detalle</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 dark:divide-zinc-800">
-                        @forelse($historial as $item)
-                            <tr class="hover:bg-slate-50/50 dark:hover:bg-zinc-800/30 transition-colors">
-                                <td class="p-5 align-top">
-                                    <div class="text-sm font-bold text-slate-700 dark:text-zinc-200">
-                                        {{ \Carbon\Carbon::parse($item->fecha)->format('d/m/Y') }}
-                                    </div>
-                                    <div class="text-xs text-slate-400 mt-1">
-                                        <i class="fa-regular fa-clock mr-1"></i> {{ $item->hora }} hrs
-                                    </div>
-                                </td>
 
-                                <td class="p-5 align-top w-1/3">
-                                    <div class="flex items-start gap-4">
-                                        <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 shadow-inner {{ $item->color }}">
-                                            <i class="fa-solid {{ $item->icono }} text-xl"></i>
-                                        </div>
-                                        <div class="flex flex-col">
-                                            <span class="font-bold text-slate-800 dark:text-white text-[15px] leading-tight mb-1">
-                                                {{ $item->tipo_registro }}
-                                            </span>
 
-                                            {{-- BOTÓN DE ARCHIVOS ADJUNTOS --}}
-                                            @if($item->cantidad_documentos > 0)
-                                                <button wire:click="mostrarArchivos({{ $item->id }}, '{{ $item->modelo_tipo }}')" class="text-left mt-1 mb-2 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors font-medium flex items-center gap-1 cursor-pointer">
-                                                    <i class="fa-solid fa-paperclip"></i> Ver {{ $item->cantidad_documentos }} adjunto(s)
-                                                </button>
-                                            @endif
 
-                                            <div class="mt-1">
-                                                <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border shadow-sm {{ $item->color_estado }}">
-                                                    {{ $item->estado }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-
-                                <td class="p-5 align-top">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-zinc-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-zinc-300">
-                                            {{ substr($item->profesional, 0, 1) }}
-                                        </div>
-                                        <span class="text-sm font-medium text-slate-600 dark:text-zinc-300">
-                                            {{ $item->profesional }}
-                                        </span>
-                                    </div>
-                                </td>
-
-                                <td class="p-5 text-sm align-top">
-                                    <div class="bg-slate-50 dark:bg-zinc-800/80 p-3.5 rounded-lg border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-slate-300 whitespace-pre-line shadow-sm">
-                                        {{ $item->detalle }}
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="4" class="p-12 text-center text-slate-500 dark:text-slate-400">
-                                    <div class="w-16 h-16 bg-slate-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <i class="fa-solid fa-folder-open text-2xl text-slate-400 dark:text-zinc-500"></i>
-                                    </div>
-                                    <p class="text-lg font-medium text-slate-700 dark:text-slate-300">Sin registros</p>
-                                    <p class="text-sm mt-1">Aún no hay intervenciones o derivaciones para este estudiante.</p>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+        <div class="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border">
+            <div class="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-md">
+                <i class="fa-solid fa-user-graduate text-xl"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-black text-slate-800 uppercase">{{ $estudiante->nombre }} {{ $estudiante->apellido }}</h2>
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">RUT: {{ $estudiante->rut }} | {{ $estudiante->curso->curso ?? 'Sin Curso' }}</p>
             </div>
         </div>
     </div>
 
-    {{-- MODAL PARA VER DOCUMENTOS --}}
-    <flux:modal wire:model="verArchivosModal" class="w-full max-w-lg">
-        <div class="space-y-6">
-            <div>
-                <flux:heading size="lg">{{ $tituloModalArchivos }}</flux:heading>
-                <flux:subheading>Puedes abrir los archivos en una pestaña nueva o descargarlos.</flux:subheading>
-            </div>
+    <div class="bg-white border-x flex p-1 gap-2">
+        <button wire:click="setTab('intervenciones')"
+            class="flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-lg transition-all {{ $activeTab === 'intervenciones' ? 'bg-blue-600 text-white shadow-lg' : 'bg-transparent text-slate-400 hover:bg-slate-50' }}">
+            <i class="fa-solid fa-handshake-angle mr-2"></i> Intervenciones ({{ count($intervenciones) }})
+        </button>
+        <button wire:click="setTab('derivaciones')"
+            class="flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-lg transition-all {{ $activeTab === 'derivaciones' ? 'bg-orange-500 text-white shadow-lg' : 'bg-transparent text-slate-400 hover:bg-slate-50' }}">
+            <i class="fa-solid fa-file-export mr-2"></i> Derivaciones ({{ count($derivaciones) }})
+        </button>
+    </div>
 
-            <div class="space-y-2 max-h-96 overflow-y-auto pr-2">
-                @forelse($documentosMostrar as $doc)
-                    <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-zinc-800/50 rounded-lg border border-slate-200 dark:border-zinc-700">
-                        <div class="flex items-center gap-3 overflow-hidden">
-                            @if(str_contains($doc->mime_type ?? '', 'pdf'))
-                                <i class="fa-solid fa-file-pdf text-red-500 text-2xl flex-shrink-0"></i>
-                            @elseif(str_contains($doc->mime_type ?? '', 'image'))
-                                <i class="fa-solid fa-file-image text-emerald-500 text-2xl flex-shrink-0"></i>
-                            @else
-                                <i class="fa-solid fa-file-lines text-slate-400 text-2xl flex-shrink-0"></i>
-                            @endif
+    <div class="bg-white border rounded-b-xl overflow-hidden shadow-sm">
 
-                            <div class="flex flex-col overflow-hidden">
-                                <a href="{{ asset('storage/' . ($doc->file_path ?? $doc->ruta ?? $doc->ruta_archivo)) }}"
-                                   target="_blank"
-                                   class="text-sm font-medium hover:underline text-blue-600 dark:text-blue-400 truncate"
-                                   title="{{ $doc->name ?? $doc->nombre_original }}">
-                                    {{ $doc->name ?? $doc->nombre_original }}
-                                </a>
-                                <span class="text-xs text-slate-500">{{ number_format(($doc->size ?? 0) / 1024, 1) }} KB</span>
-                            </div>
-                        </div>
+        @if($activeTab === 'intervenciones')
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50 border-b">
+                    <tr>
+                        <th class="px-6 py-4 text-xs font-black text-slate-500 uppercase w-40">Fecha</th>
+                        <th class="px-6 py-4 text-xs font-black text-slate-500 uppercase">Origen</th>
+                        <th class="px-6 py-4 text-xs font-black text-slate-500 uppercase">Descripción</th>
+                        <th class="px-6 py-4 text-xs font-black text-slate-500 uppercase text-center">Docs</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($intervenciones as $reg)
+                        <tr>
+                            <td class="px-6 py-5 align-top">
+                                <div class="text-sm font-bold text-slate-700">{{ $reg['fecha'] }}</div>
+                                {{-- <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase border {{ $reg['color_estado'] }}">{{ $reg['estado'] }}</span> --}}
+                            </td>
+                            <td class="px-6 py-5 align-top">
+                                <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-[10px] font-black uppercase border border-blue-100">{{ $reg['via'] }}</span>
+                                <div class="text-sm font-extrabold text-slate-800 mt-2">{{ $reg['profesional'] }}</div>
+                                <div class="text-[10px] text-slate-400 font-bold uppercase italic">{{ $reg['area'] }}</div>
+                            </td>
+                            <td class="px-6 py-5 align-top">
+                                <p class="text-sm text-slate-600 italic">"{{ $reg['descripcion'] }}"</p>
+                            </td>
+                            <td class="px-6 py-5 text-center align-top">
+                                @if(count($reg['documentos']) > 0)
+                                    <button wire:click="abrirModalArchivos({{ $reg['id'] }}, 'intervencion')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><i class="fa-solid fa-paperclip"></i></button>
+                                @endif
+                            </td>
+                        </tr>
+                        @if(count($reg['detalles']) > 0)
+                            <tr class="bg-slate-50/50">
+                                <td></td>
+                                <td colspan="3" class="px-6 py-4">
+                                    <div class="space-y-2 border-l-2 border-slate-200 pl-4">
+                                        @foreach($reg['detalles'] as $detalle)
+                                            <div class="bg-white border rounded-lg p-3 shadow-sm flex flex-col md:flex-row gap-4">
+                                                <div class="flex-1">
+                                                    <span class="text-[9px] font-black text-slate-400 uppercase block">Tipo/Motivo</span>
+                                                    <span class="text-sm font-bold text-slate-700">
+                                                        {{ $detalle->motivo->motivo ?? ($detalle->falta->falta ?? 'Registro de Intervención') }}
+                                                    </span>
+                                                </div>
+                                                <div class="flex-1">
+                                                    <span class="text-[9px] font-black text-slate-400 uppercase block">Tipo Inervención/Medida</span>
+                                                    <span class="text-sm font-bold text-slate-700">
+                                                        {{ $detalle->tipointervencion->tipo ?? ($detalle->medida->medida ?? 'Registro de Intervención') }}
+                                                    </span>
+                                                </div>
+                                                {{-- <div class="flex-1 bg-slate-50 p-2 rounded">
+                                                    <span class="text-[9px] font-black text-slate-400 uppercase block">Observación de Registro:</span>
+                                                    <p class="text-xs text-slate-600">{{ $detalle->detalle ?: 'Sin notas.' }}</p>
+                                                </div> --}}
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </td>
+                            </tr>
+                        @endif
+                    @empty
+                        <tr><td colspan="4" class="py-20 text-center text-slate-400 italic">No hay intervenciones.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
 
-                        <flux:button
-                            as="a"
-                            href="{{ asset('storage/' . ($doc->file_path ?? $doc->ruta ?? $doc->ruta_archivo)) }}"
-                            download="{{ $doc->name ?? $doc->nombre_original }}"
-                            icon="arrow-down-tray"
-                            variant="ghost"
-                            size="sm"
-                        />
+        @else
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50 border-b">
+                    <tr>
+                        <th class="px-6 py-4 text-xs font-black text-slate-500 uppercase w-40">Fecha</th>
+                        <th class="px-6 py-4 text-xs font-black text-slate-500 uppercase">Motivo</th>
+                        <th class="px-6 py-4 text-xs font-black text-slate-500 uppercase">Derivado Por</th>
+                        <th class="px-6 py-4 text-xs font-black text-slate-500 uppercase">Detalle Derivación</th>
+                        <th class="px-6 py-4 text-xs font-black text-slate-500 uppercase text-center">Docs</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($derivaciones as $der)
+    <tr class="hover:bg-slate-50/30 transition-colors border-t border-slate-100">
+        <td class="px-6 py-5">
+            <div class="text-sm font-bold text-slate-700 dark:text-zinc-200">{{ $der['fecha'] }}</div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase border {{ $der['color_estado'] }}">{{ $der['estado'] }}</span>
+        </td>
+        <td class="px-6 py-5 text-sm font-black text-slate-800 dark:text-zinc-100">{{ $der['motivo'] }}</td>
+        <td class="px-6 py-5">
+            <div class="text-sm font-bold text-slate-700 dark:text-zinc-200">{{ $der['profesional'] }}</div>
+            <div class="text-[10px] text-orange-600 font-black uppercase">{{ $der['tipo'] }}</div>
+        </td>
+        <td class="px-6 py-5 text-sm text-slate-600 dark:text-zinc-400 italic">
+            {{ $der['detalle'] }}
+        </td>
+        <td class="px-6 py-5 text-center">
+            @if(count($der['documentos']) > 0)
+                <button wire:click="abrirModalArchivos({{ $der['id'] }}, 'derivacion')" class="p-2 text-orange-600 hover:bg-orange-50 rounded-lg">
+                    <i class="fa-solid fa-paperclip"></i>
+                </button>
+            @endif
+        </td>
+    </tr>
+
+    {{-- SUBTABLA DE ACCIONES --}}
+    @if(count($der['acciones']) > 0)
+        <tr class="bg-orange-50/30 dark:bg-zinc-800/20">
+            <td></td>
+            <td colspan="4" class="px-6 py-4">
+                <div class="border-l-2 border-orange-200 pl-4 space-y-2">
+                    <p class="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-2">
+                        <i class="fa-solid fa-list-check mr-1"></i> Seguimiento de Acciones
+                    </p>
+                    <table class="w-full bg-white dark:bg-zinc-900 border border-slate-100 rounded-lg overflow-hidden shadow-sm">
+                        <thead class="bg-slate-50 dark:bg-zinc-800">
+                            <tr>
+                                <th class="px-4 py-2 text-[10px] font-black text-slate-400 uppercase">Fecha</th>
+                                <th class="px-4 py-2 text-[10px] font-black text-slate-400 uppercase">Profesional</th>
+                                <th class="px-4 py-2 text-[10px] font-black text-slate-400 uppercase text-left">Acción Realizada</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50 dark:divide-zinc-800">
+                            @foreach($der['acciones'] as $accion)
+                                <tr>
+                                    <td class="px-4 py-2 text-xs font-bold text-slate-600 w-24">
+                                        {{ \Carbon\Carbon::parse($accion->fecha)->format('d/m/Y') }}
+                                    </td>
+                                    <td class="px-4 py-2 text-xs font-bold text-slate-700 dark:text-zinc-300">
+                                        {{ $accion->usuario->name ?? 'N/A' }}
+                                    </td>
+                                    <td class="px-4 py-2 text-xs text-slate-600 dark:text-zinc-400 italic">
+                                        {{ $accion->descripcion }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </td>
+        </tr>
+    @endif
+@empty
+    <tr><td colspan="5" class="py-20 text-center text-slate-400 italic">No hay derivaciones.</td></tr>
+@endforelse
+                </tbody>
+            </table>
+        @endif
+    </div>
+
+    <flux:modal wire:model="verArchivosModal" variant="wide">
+        <div class="p-4 space-y-4">
+            <h3 class="text-lg font-bold border-b pb-2">Archivos Adjuntos</h3>
+            <div class="grid grid-cols-1 gap-2">
+                @foreach($documentosMostrar as $doc)
+                    <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg border">
+                        <span class="text-sm font-medium">{{ $doc->name }}</span>
+                        <a href="{{ asset('storage/'.$doc->file_path) }}" target="_blank" class="text-blue-600 text-xs font-bold uppercase underline">Descargar</a>
                     </div>
-                @empty
-                    <div class="text-center py-8">
-                        <i class="fa-solid fa-circle-info text-slate-300 text-3xl mb-2"></i>
-                        <p class="text-sm text-slate-500">No se encontraron los archivos físicos.</p>
-                    </div>
-                @endforelse
+                @endforeach
             </div>
-
-            <div class="flex justify-end pt-4 border-t border-slate-100 dark:border-zinc-800">
-                <flux:button wire:click="$set('verArchivosModal', false)" variant="ghost">Cerrar ventana</flux:button>
-            </div>
+            <div class="flex justify-end pt-4"><flux:button wire:click="$set('verArchivosModal', false)" variant="ghost">Cerrar</flux:button></div>
         </div>
     </flux:modal>
 </div>
-
-

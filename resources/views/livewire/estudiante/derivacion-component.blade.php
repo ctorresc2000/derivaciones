@@ -1,10 +1,16 @@
 <div>
+    {{-- INTERCENCIÓN CONIVENCIA --}}
+
     <div class="p-5 bg-slate-50 dark:bg-zinc-900 rounded-lg border border-slate-200 dark:border-zinc-800 shadow-inner my-2 mx-4">
 
         <div class="flex items-center gap-3 mb-6">
             <div class="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
                 <i class="fa-solid fa-address-card text-lg"></i>
             </div>
+            <h1 class="text-2xl font-semibold text-slate-800 dark:text-white">
+                <strong>INTERVENCIÓN CONVIVENCIA.</strong>
+            </h1>
+            <br>
             <h3 class="text-lg font-semibold text-slate-800 dark:text-white">
                 <strong>Información Estudiante:</strong> {{ $estudiante->nombre }} {{ $estudiante->apellido }} / <strong>Nombre Social :</strong> {{ $estudiante->social ?: 'No registrado' }}
             </h3>
@@ -249,7 +255,7 @@
             @else
                 <div class="text-center py-6 text-slate-400 dark:text-zinc-500 text-sm border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-lg">
                     <i class="fa-solid fa-clipboard-list text-2xl mb-2 opacity-50"></i>
-                    <p>Aún no has agregado faltas ni medidas a esta derivación.</p>
+                    <p>Aún no has agregado faltas ni medidas a esta Intervención.</p>
                 </div>
             @endif
 
@@ -295,8 +301,10 @@
             </div>
             <hr class="mt-2 mb-2">
             <div class="flex justify-end px-6">
-                <flux:button wire:click="guardarDerivacion">
-                    <i class="fa-solid fa-floppy-disk"></i><span class="ml-3">Guarda</span>
+                <flux:button wire:click="guardarDerivacion" wire:loading.attr="disabled">
+                    <flux:icon.loading wire:loading />
+                    <i class="fa-solid fa-floppy-disk" wire:loading.remove></i>
+                    <span class="ml-3">Guardar</span>
                 </flux:button>
             </div>
 

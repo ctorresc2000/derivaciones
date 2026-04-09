@@ -9,8 +9,6 @@ use Livewire\Component;
 
 use App\Models\Estudiante;
 
-
-
 use App\Models\Intervencioncopia;
 use Illuminate\Support\Facades\Mail;
 use App\Models\User;
@@ -82,7 +80,7 @@ class IntervencionesComponent extends Component
         $this->descripcion_accion = '';
         $this->cargarHistorial();
 
-        Mail::to($usuario->email)->send(new NotificacionCopiaMail($this->estudiante, $tipoRegistro, $nuevaIntervencion));
+       // Mail::to($usuario->email)->send(new NotificacionCopiaMail($this->estudiante, $tipoRegistro, $nuevaIntervencion));
 
         // Refrescamos la tabla de PowerGrid en el fondo
         $this->dispatch('pg:eventRefresh-intervencionesTable');

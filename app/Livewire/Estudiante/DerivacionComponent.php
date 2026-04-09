@@ -148,9 +148,12 @@ class DerivacionComponent extends Component
                     $intervencion->detalles()->create([
                         'falta_id'  => $item['falta_id'],
                         'medida_id' => $item['medida_id'],
+                        'motivo_intervencion_id' => null, // Aseguramos que vaya vacío
+                        'tipo_intervencion_id' => null,
                     ]);
                 }
             }
+
 
             // 👇 LO NUEVO: Guardado polimórfico de múltiples archivos 👇
             if (!empty($this->archivos)) {
@@ -169,18 +172,32 @@ class DerivacionComponent extends Component
             }
 
             if (!empty($this->usuariosSeleccionados)) {
-                // 1. Buscamos a los usuarios dueños de los IDs seleccionados
+                // 1. Buscamos a los usuarios
                 $usuariosDestino = User::whereIn('id', $this->usuariosSeleccionados)->get();
 
-                // 2. Definimos qué tipo de registro es para el título del correo
-                $tipoRegistro = 'Derivación Psicosocial'; // Cámbialo a 'Intervención' según corresponda
+                // 2. Definimos el título según el contexto (Convivencia en este caso)
+                $tipoRegistro = 'Intervención de Convivencia Escolar';
 
-                // 3. Enviamos el correo a cada uno
+                // CARGAMOS LOS DETALLES: Esto trae las faltas y medidas de la DB
+                $intervencion->load('detalles.falta', 'detalles.medida');
+                //dd($this->listaDatosAgregados);
+
                 foreach ($usuariosDestino as $usuario) {
-                    if (!empty($usuario->email)) {
-                        Mail::to($usuario->email)->send(new NotificacionCopiaMail($this->estudiante, $tipoRegistro));
+                    if ($usuario->email) {
+                        // Cargamos las relaciones para que el correo pueda mostrarlas
+                        $intervencion->load('detalles.falta', 'detalles.medida');
+
+                        Mail::to($usuario->email)->send(new NotificacionCopiaMail($this->estudiante, $tipoRegistro, $intervencion,$this->listaDatosAgregados));
                     }
                 }
+
+                // 3. Envío de correos
+                // foreach ($usuariosDestino as $usuario) {
+                //     if (!empty($usuario->email)) {
+                //         // Pasamos: 1. El estudiante, 2. El título, 3. El objeto de la intervención recién creada
+                //         Mail::to($usuario->email)->send(new NotificacionCopiaMail($this->estudiante, $tipoRegistro, $intervencion));
+                //     }
+                // }
             }
 
         });

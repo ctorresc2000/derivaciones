@@ -40,10 +40,16 @@ final class estudiantederivadoTable extends PowerGridComponent
     public function datasource(): Builder
     {
         $anioActivo = session('anio_activo', date('Y'));
+        $user = auth()->user();
 
         return Derivarestudiante::query()
-            ->with(['user', 'estudiante', 'profesional','motivo'])
-            ->whereYear('created_at', $anioActivo);
+            ->with(['user', 'estudiante', 'profesional', 'motivo'])
+            ->whereYear('created_at', $anioActivo)
+            // Aplicamos el filtro solo si NO es Administrador
+            ->when($user->rol !== 'Administrador', function ($query) use ($user) {
+                // Filtramos por la columna que indica a quién se le asignó la derivación
+                $query->where('profesional_derivado_id', $user->id);
+            });
     }
 
     public function relationSearch(): array
@@ -197,6 +203,7 @@ final class estudiantederivadoTable extends PowerGridComponent
 
         $this->dispatch('notificacion', mensaje: 'Estado actualizado correctamente');
         $this->dispatch('pg:eventRefresh-estudiantederivadoTable');
+        $this->dispatch('actualizar-notificaciones');
         //$this->dispatch('refreshTable');
     }
 

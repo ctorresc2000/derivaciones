@@ -15,12 +15,14 @@ class NotificacionCopiaMail extends Mailable
     public $estudiante;
     public $tipoRegistro;
     public $registro; // Aquí guardaremos la intervención o derivación completa
+    public $datosVista;
 
-    public function __construct($estudiante, $tipoRegistro, $registro)
+    public function __construct($estudiante, $tipoRegistro, $registro, $datosVista = [])
     {
         $this->estudiante = $estudiante;
         $this->tipoRegistro = $tipoRegistro;
         $this->registro = $registro;
+        $this->datosVista = $datosVista;
     }
 
     public function envelope(): Envelope

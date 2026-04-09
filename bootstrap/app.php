@@ -3,8 +3,8 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Request; // <-- Agrega esto
-use Illuminate\Session\TokenMismatchException; // <-- Agrega esto
+use Illuminate\Http\Request;
+use Illuminate\Session\TokenMismatchException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -13,12 +13,17 @@ return Application::configure(basePath: dirname(__DIR__))
         channels: __DIR__.'/../routes/channels.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware): void {
-        //
+    ->withMiddleware(function (Middleware $middleware) {
+        // Aquí registramos tus alias (unificado)
+        $middleware->alias([
+            'rol' => \App\Http\Middleware\CheckRol::class,
+        ]);
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
-        // Agregas este bloque para atrapar el error 419 de sesión expirada
+    ->withExceptions(function (Exceptions $exceptions) {
+        // Bloque para capturar el error 419 (TokenMismatch)
         $exceptions->render(function (TokenMismatchException $e, Request $request) {
-            return redirect()->route('login')->with('error', 'Tu sesión expiró por inactividad. Por favor, vuelve a iniciar sesión.');
+            return redirect()->route('login')
+                ->with('error', 'Tu sesión expiró por inactividad. Por favor, vuelve a iniciar sesión.');
         });
-    })->create();
+    }) // <-- Aquí se cierra correctamente la función de excepciones
+    ->create();

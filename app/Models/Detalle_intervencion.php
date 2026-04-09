@@ -10,7 +10,23 @@ class Detalle_intervencion extends Model
         'intervencion_id',
         'falta_id',
         'medida_id',
+        'motivo_intervencion_id',
+        'tipo_intervencion_id',
     ];
+
+    // --- RELACIONES PARA PSICOSOCIAL ---
+
+    public function motivo()
+    {
+        // Relaciona el ID de la tabla detalle con el modelo Motivointervencion
+        return $this->belongsTo(Motivointervencion::class, 'motivo_intervencion_id');
+    }
+
+    public function tipo()
+    {
+        // Relaciona el ID de la tabla detalle con el modelo Tipointervencion
+        return $this->belongsTo(Tipointervencion::class, 'tipo_intervencion_id');
+    }
 
     public function intervencion()
     {
@@ -25,5 +41,15 @@ class Detalle_intervencion extends Model
     public function medida()
     {
         return $this->belongsTo(Medida::class);
+    }
+
+    public function motivoIntervencion()
+    {
+        return $this->belongsTo(Motivointervencion::class, 'motivo_intervencion_id');
+    }
+
+    public function tipoIntervencion()
+    {
+        return $this->belongsTo(Tipointervencion::class, 'tipo_intervencion_id');
     }
 }

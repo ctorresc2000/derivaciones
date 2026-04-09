@@ -7,9 +7,11 @@
         <flux:button wire:click="$set('abrirModal', true)">
             <i class="fa-solid fa-circle-plus"></i><span class="ml-3">Nuevo Estudiante</span>
         </flux:button>
-        <flux:button wire:click="$set('excelModal', true)" class="ml-3" variant="primary" color="blue">
-            <i class="fa-solid fa-upload"></i><span class="ml-3">Subir Excel</span>
-        </flux:button>
+        @if (Auth::user()->rol==="Administrador")
+            <flux:button wire:click="$set('excelModal', true)" class="ml-3" variant="primary" color="blue">
+                <i class="fa-solid fa-upload"></i><span class="ml-3">Subir Excel</span>
+            </flux:button>
+        @endif
     </div>
 
     <hr  class="mt-3 mb-3">
