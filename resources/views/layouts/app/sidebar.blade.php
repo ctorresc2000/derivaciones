@@ -24,71 +24,89 @@
 
             <flux:sidebar.nav>
                 <flux:sidebar.group :heading="__('Administración')" class="grid">
-                @if (Auth()->user()->rol=="Administrador")
-                    <flux:sidebar.item :href="route('usuarios')" :current="request()->routeIs('usuarios')" wire:navigate>
-                        <i class="fa-solid fa-user"></i>
-                        <span class="ml-3">Usuarios</span>
-                    </flux:sidebar.item>
+                    @if (Auth()->user()->rol=="Administrador")
+                        <flux:sidebar.item :href="route('usuarios')" :current="request()->routeIs('usuarios')" wire:navigate>
+                            <i class="fa-solid fa-user"></i>
+                            <span class="ml-3">Usuarios</span>
+                        </flux:sidebar.item>
+                    @endif
+
+                        <flux:sidebar.item  :href="route('estudiantes')" :current="request()->routeIs('estudiantes')" wire:navigate>
+                            <i class="fa-solid fa-user-graduate"></i>
+                            <span class="ml-3">Estudiantes</span>
+                        </flux:sidebar.item>
+
+                        {{-- <flux:sidebar.item  :href="route('profesionales')" :current="request()->routeIs('profesionales')" wire:navigate>
+                            <i class="fa-solid fa-person"></i>
+                            <span class="ml-3">Profesionales</span>
+                        </flux:sidebar.item> --}}
+                    @if (Auth()->user()->rol=="Administrador")
+                        <flux:sidebar.item :href="route('cursos')" :current="request()->routeIs('cursos')" wire:navigate>
+                            <i class='fa-solid fa-school'></i>
+                            <span class="ml-3">Cursos</span>
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item :href="route('viaingreso')" :current="request()->routeIs('viaingreso')" wire:navigate>
+                            <i class="fa-solid fa-arrows-to-circle"></i>
+                            <span class="ml-3">Via de Ingreso</span>
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item :href="route('tipoprofesional')" :current="request()->routeIs('tipoprofesional')" wire:navigate>
+                            <i class="fa-solid fa-user-tie"></i>
+                            <span class="ml-3">Tipo de Profesiones</span>
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item :href="route('configuracion')" :current="request()->routeIs('configuracion')" wire:navigate>
+                            <i class="fa-solid fa-gear"></i>
+                            <span class="ml-3">Configuración</span>
+                        </flux:sidebar.item>
+                    @endif
+                        <flux:sidebar.item :href="route('entrevistas')" :current="request()->routeIs('entrevistas')">
+                            <i class="fa-solid fa-book"></i>
+                            <span class="ml-3">Entrevistas</span>
+                        </flux:sidebar.item>
+                        <flux:sidebar.item :href="route('cardex')" :current="request()->routeIs('cardex')" wire:navigate>
+                            <i class="fa-solid fa-address-card"></i>
+                            <span class="ml-3">Cardex</span>
+                        </flux:sidebar.item>
+                </flux:sidebar.group>
+
+                @if (Auth()->user()->rol=="Administrador" || Auth::user()->esTipo('Convivencia'))
+                    <flux:sidebar.group :heading="__('Convivencia')" class="grid">
+
+                        <flux:sidebar.item :href="route('faltas')" :current="request()->routeIs('faltas')" wire:navigate>
+                            <i class="fa-solid fa-hand"></i>
+                            <span class="ml-3">Faltas</span>
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item :href="route('medidas')" :current="request()->routeIs('medidas')" wire:navigate>
+                            <i class="fa-solid fa-ruler"></i>
+                            <span class="ml-3">Medidas</span>
+                        </flux:sidebar.item>
+
+                    </flux:sidebar.group>
+                @endif
+                @if (Auth()->user()->rol=="Administrador" || Auth::user()->esTipo('Psicosocial'))
+                    <flux:sidebar.group :heading="__('Psicosocial')" class="grid">
+
+                        <flux:sidebar.item :href="route('motivointervencion')" :current="request()->routeIs('motivointervencion')" wire:navigate>
+                            <i class="fa-solid fa-file-circle-question"></i>
+                            <span class="ml-3">Motivos de Intervención</span>
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item :href="route('tipointervencion')" :current="request()->routeIs('tipointervencion')" wire:navigate>
+                            <i class="fa-solid fa-person-circle-question"></i>
+                            <span class="ml-3">Tipos de Intervención</span>
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item :href="route('redes')" :current="request()->routeIs('redes')" wire:navigate>
+                            <i class="fa-solid fa-hospital"></i>
+                            <span class="ml-3">Redes de Apoyo</span>
+                        </flux:sidebar.item>
+
+                    </flux:sidebar.group>
                 @endif
 
-                    <flux:sidebar.item  :href="route('estudiantes')" :current="request()->routeIs('estudiantes')" wire:navigate>
-                        <i class="fa-solid fa-user-graduate"></i>
-                        <span class="ml-3">Estudiantes</span>
-                    </flux:sidebar.item>
-
-                    {{-- <flux:sidebar.item  :href="route('profesionales')" :current="request()->routeIs('profesionales')" wire:navigate>
-                        <i class="fa-solid fa-person"></i>
-                        <span class="ml-3">Profesionales</span>
-                    </flux:sidebar.item> --}}
-                @if (Auth()->user()->rol=="Administrador")
-                    <flux:sidebar.item :href="route('cursos')" :current="request()->routeIs('cursos')" wire:navigate>
-                        <i class='fa-solid fa-school'></i>
-                        <span class="ml-3">Cursos</span>
-                    </flux:sidebar.item>
-
-                    <flux:sidebar.item :href="route('viaingreso')" :current="request()->routeIs('viaingreso')" wire:navigate>
-                        <i class="fa-solid fa-arrows-to-circle"></i>
-                        <span class="ml-3">Via de Ingreso</span>
-                    </flux:sidebar.item>
-
-                    <flux:sidebar.item :href="route('tipoprofesional')" :current="request()->routeIs('tipoprofesional')" wire:navigate>
-                        <i class="fa-solid fa-user-tie"></i>
-                        <span class="ml-3">Tipo de Profesiones</span>
-                    </flux:sidebar.item>
-
-                    <flux:sidebar.item :href="route('configuracion')" :current="request()->routeIs('configuracion')" wire:navigate>
-                        <i class="fa-solid fa-gear"></i>
-                        <span class="ml-3">Configuración</span>
-                    </flux:sidebar.item>
-                </flux:sidebar.group>
-
-                <flux:sidebar.group :heading="__('Convivencia')" class="grid">
-
-
-                    <flux:sidebar.item :href="route('faltas')" :current="request()->routeIs('faltas')" wire:navigate>
-                        <i class="fa-solid fa-hand"></i>
-                        <span class="ml-3">Faltas</span>
-                    </flux:sidebar.item>
-
-                    <flux:sidebar.item :href="route('medidas')" :current="request()->routeIs('medidas')" wire:navigate>
-                        <i class="fa-solid fa-ruler"></i>
-                        <span class="ml-3">Medidas</span>
-                    </flux:sidebar.item>
-                </flux:sidebar.group>
-
-                <flux:sidebar.group :heading="__('Psicosocial')" class="grid">
-
-                    <flux:sidebar.item :href="route('motivointervencion')" :current="request()->routeIs('motivointervencion')" wire:navigate>
-                        <i class="fa-solid fa-file-circle-question"></i>
-                        <span class="ml-3">Motivos de Intervención</span>
-                    </flux:sidebar.item>
-
-                    <flux:sidebar.item :href="route('tipointervencion')" :current="request()->routeIs('tipointervencion')" wire:navigate>
-                        <i class="fa-solid fa-person-circle-question"></i>
-                        <span class="ml-3">Tipos de Intervención</span>
-                    </flux:sidebar.item>
-                </flux:sidebar.group>
-                @endif
             </flux:sidebar.nav>
 
             <flux:sidebar.nav>

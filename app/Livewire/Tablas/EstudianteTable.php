@@ -30,7 +30,7 @@ final class EstudianteTable extends PowerGridComponent
 
     public function setUp(): array
     {
-        $this->showCheckBox();
+        // $this->showCheckBox();
 
         return [
             PowerGrid::header()
@@ -162,14 +162,14 @@ final class EstudianteTable extends PowerGridComponent
 
 
 
-    public function onUpdatedEditable($id, $field, $value): void
-    {
-        Estudiante::query()
-            ->find($id)
-            ->update([
-                $field => $value
-            ]);
-    }
+        public function onUpdatedEditable($id, $field, $value): void
+        {
+            Estudiante::query()
+                ->find($id)
+                ->update([
+                    $field => $value
+                ]);
+        }
 
     #[\Livewire\Attributes\On('edit')]
     public function edit($rowId): void
@@ -361,11 +361,18 @@ final class EstudianteTable extends PowerGridComponent
 
         }
 
+        $botones[]=Button::add('redes')
+            ->slot('<i class="fa-solid fa-house-medical"></i>')
+            ->tooltip('Redes de Apoyo')
+            ->class('bg-emerald-500 text-white p-2 rounded-md')
+            ->dispatch('abrirModalRedes', ['estudianteId' => $row->id]);
+
         $botones[]=Button::add('historial')
             ->slot('<i class="fa-solid fa-clock-rotate-left"></i> ')
             ->tooltip('Historial Estudiante')
             ->class('p-2 rounded bg-zinc-500 text-white hover:bg-zinc-600')
             ->route('estudiante.historial', ['id' => $row->id]); // <-- Cambiamos la ruta aquí
+
 
 
         return $botones;

@@ -74,6 +74,12 @@ class User extends Authenticatable
         return $this->belongsTo(TipoProfesional::class, 'tipo_profesional_id');
     }
 
+    public function esTipo($nombre)
+    {
+        // Asumiendo que User tiene una relación 'tipoProfesional'
+        return $this->tipoProfesional?->departamento === $nombre;
+    }
+
     // 2. Las derivaciones que este usuario HA CREADO (como profesor)
     public function derivacionesCreadas()
     {

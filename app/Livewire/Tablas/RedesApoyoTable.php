@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Tablas;
 
-use App\Models\Viaingreso;
+use App\Models\RedesApoyo;
 use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use PowerComponents\LivewirePowerGrid\Button;
@@ -12,9 +12,9 @@ use PowerComponents\LivewirePowerGrid\Facades\PowerGrid;
 use PowerComponents\LivewirePowerGrid\PowerGridFields;
 use PowerComponents\LivewirePowerGrid\PowerGridComponent;
 
-final class ViaingresoTable extends PowerGridComponent
+final class RedesApoyoTable extends PowerGridComponent
 {
-    public string $tableName = 'viaingresoTable';
+    public string $tableName = 'redesApoyoTable';
 
     public function setUp(): array
     {
@@ -31,7 +31,7 @@ final class ViaingresoTable extends PowerGridComponent
 
     public function datasource(): Builder
     {
-        return Viaingreso::query();
+        return RedesApoyo::query();
     }
 
     public function relationSearch(): array
@@ -42,24 +42,54 @@ final class ViaingresoTable extends PowerGridComponent
     public function fields(): PowerGridFields
     {
         return PowerGrid::fields()
-            ->add('id')
-            ->add('via_ingreso')
-            ->add('created_at');
-    }
+                ->add('id')
+                ->add('nombre')
+                ->add('contacto')
+                ->add('telefono')
+                ->add('email');
+        }
 
     public function columns(): array
     {
         return [
-            Column::make('Nombre', 'via_ingreso')
+            Column::make('ID', 'id')
+                ->hidden(true)
+                ->sortable()
+                ->searchable(),
+
+            Column::make('Red de Apoyo', 'nombre')
                 ->sortable()
                 ->searchable()
-                ->editOnClick()
-                ->headerAttribute('class="w-64"')
-                ->bodyAttribute('class="w-64"'),
+                ->editOnClick(),
 
-             Column::action('Action')
-                ->hidden(true),
+            // Column::make('Contacto', 'contacto')
+            //     ->sortable()
+            //     ->searchable()
+            //     ->editOnClick(),
+
+            // Column::make('Teléfono', 'telefono')
+            //     ->sortable()
+            //     ->searchable()
+            //     ->editOnClick(),
+
+            // Column::make('Email', 'email')
+            //     ->sortable()
+            //     ->searchable()
+            //     ->editOnClick(),
+
+            Column::action('Acciones')
+                    ->hidden(true),
+
         ];
+    }
+
+    public function onUpdatedEditable($id, $field, $value): void
+    {
+        RedesApoyo::query()
+            ->find($id)
+            ->update([
+                $field => $value
+            ]);
     }
 
     public function filters(): array
@@ -68,22 +98,13 @@ final class ViaingresoTable extends PowerGridComponent
         ];
     }
 
-    public function onUpdatedEditable($id, $field, $value): void
-    {
-        Viaingreso::query()
-            ->find($id)
-            ->update([
-                $field => $value
-            ]);
-    }
-
     #[\Livewire\Attributes\On('edit')]
     public function edit($rowId): void
     {
         $this->js('alert('.$rowId.')');
     }
 
-    public function actions(Viaingreso $row): array
+    public function actions(RedesApoyo $row): array
     {
         return [
             Button::add('edit')
@@ -97,6 +118,7 @@ final class ViaingresoTable extends PowerGridComponent
     protected $listeners = [
             'refreshTable' => '$refresh',
         ];
+
 
     /*
     public function actionRules($row): array

@@ -15,7 +15,7 @@ use PowerComponents\LivewirePowerGrid\Facades\PowerGrid;
 use PowerComponents\LivewirePowerGrid\PowerGridComponent;
 use PowerComponents\LivewirePowerGrid\PowerGridFields;
 
-final class estudiantederivadoTable extends PowerGridComponent
+final class EstudiantederivadoTable extends PowerGridComponent
 {
     public array $detallesAbiertos = [];
     public $conclusion;
@@ -23,7 +23,7 @@ final class estudiantederivadoTable extends PowerGridComponent
 
     public function setUp(): array
     {
-        $this->showCheckBox();
+        // $this->showCheckBox();
 
         return [
             PowerGrid::header()

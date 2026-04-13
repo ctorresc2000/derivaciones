@@ -15,10 +15,12 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 use Maatwebsite\Excel\Facades\Excel;
 use Livewire\WithFileUploads;
+use App\Traits\HasDocuments;
 
 class EstudianteComponent extends Component
 {
     use WithFileUploads;
+    use HasDocuments;
 
     public $name;
     public $email;
@@ -42,7 +44,7 @@ class EstudianteComponent extends Component
     public $profesional_derivado_id;
     public $detalle_derivacion;
     public $adjunto_derivacion;
-    public $archivo_adjunto;
+    public $archivo_adjunto=[];
     public $viaingresos;
     public $motivos;
     public $subirExcel;
@@ -50,10 +52,20 @@ class EstudianteComponent extends Component
     public $previos_derivacion;
     public $archivo_estudiante;
 
+    public $modalRedes = false;
+    public $estudianteSeleccionadoRedes;
+    public $red_id;
+    public $observacion_red;
+
+protected $listeners = ['abrirModalRedes'];
+
 
     public function render()
     {
-        return view('livewire.estudiante.estudiante-component');
+        return view('livewire.estudiante.estudiante-component', [
+            // Enviamos la lista de redes a la vista
+            'redes' => \App\Models\RedesApoyo::all()
+        ]);
     }
 
     public function mount(){
@@ -267,47 +279,58 @@ class EstudianteComponent extends Component
     public function guardarDerivacion()
     {
         $this->validate([
-            'motivo_derivacion'=>'required',
-            'profesional_derivado_id'=>'required',
-            'detalle_derivacion'=>'required',
-            'archivo_adjunto' => 'nullable|file|max:5120|mimes:pdf,jpg,jpeg,png,doc,docx',
+            'motivo_derivacion' => 'required',
+            'profesional_derivado_id' => 'required',
+            'detalle_derivacion' => 'required',
+            'archivo_adjunto.*' => 'nullable|file|max:10240', // Validación para múltiples archivos
         ]);
 
-        $nuevaDerivacion = Derivarestudiante::create([
-            'fecha_derivacion'=>now(),
-            'estudiante_id'=>$this->estudianteSeleccionado?->id,
-            'user_id' => \Illuminate\Support\Facades\Auth::id(),
-            'motivo_derivacion'=>$this->motivo_derivacion,
-            'profesional_derivado_id'=>$this->profesional_derivado_id,
-            'detalle_derivacion'=>$this->detalle_derivacion,
-            'previos_derivacion'=>$this->previos_derivacion,
-        ]);
-
-
-        // 👇 LO NUEVO: Guardado polimórfico de la derivación 👇
-        if ($this->archivo_adjunto) {
-
-            $rutaGuardada = $this->archivo_adjunto->store("documents/derivaciones/{$nuevaDerivacion->id}", 'public');
-
-            $nuevaDerivacion->documents()->create([
-                'name'      => $this->archivo_adjunto->getClientOriginalName(),
-                'file_path' => $rutaGuardada,
-                'mime_type' => $this->archivo_adjunto->getClientMimeType(),
-                'size'      => $this->archivo_adjunto->getSize(),
+        try {
+            $nuevaDerivacion = Derivarestudiante::create([
+                'estudiante_id' => $this->estudianteSeleccionado->id,
+                'user_id' => Auth::user()->id,
+                'motivo_derivacion' => $this->motivo_derivacion,
+                'profesional_derivado_id' => $this->profesional_derivado_id,
+                'detalle_derivacion' => $this->detalle_derivacion,
+                'fecha_derivacion' => now(),
+                'previos_derivacion' => $this->previos_derivacion,
+                'estado' => 'Pendiente',
             ]);
-        }
 
-        $this->dispatch('swal', [
-            'icon' => 'success',
-            'title' => 'Felicitaciones',
-            'text' => 'Derivación Realizada Exitósamente',
-            'timer' => 1500
-        ]);
-        $this->dispatch('actualizar-notificaciones');
-        $this->derivarModal = false;
-        $this->dispatch('refreshTable');
-        $this->resetValidation();
-        $this->reset('motivo_derivacion','profesional_derivado_id','detalle_derivacion','previos_derivacion','archivo_adjunto');
+            // Asegúrate de que se trate como array siempre
+            $coleccionArchivos = is_array($this->archivo_adjunto)
+                ? $this->archivo_adjunto
+                : ($this->archivo_adjunto ? [$this->archivo_adjunto] : []);
+
+            if (count($coleccionArchivos) > 0) {
+                foreach ($coleccionArchivos as $archivo) {
+                    // Verificamos que sea un archivo temporal válido antes de procesar
+                    if ($archivo instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                        $rutaGuardada = $archivo->store("documents/derivaciones/{$nuevaDerivacion->id}", 'public');
+
+                        $nuevaDerivacion->documents()->create([
+                            'name'      => $archivo->getClientOriginalName(),
+                            'file_path' => $rutaGuardada,
+                            'mime_type' => $archivo->getClientMimeType(),
+                            'size'      => $archivo->getSize(),
+                        ]);
+                    }
+                }
+            }
+
+            $this->dispatch('swal', [
+                'icon' => 'success',
+                'title' => 'Éxito',
+                'text' => 'Derivación y archivos guardados correctamente',
+            ]);
+
+            $this->derivarModal = false;
+            $this->reset(['motivo_derivacion', 'profesional_derivado_id', 'detalle_derivacion', 'previos_derivacion', 'archivo_adjunto']);
+            $this->dispatch('refreshTable');
+
+        } catch (\Exception $e) {
+            $this->dispatch('swal', ['icon' => 'error', 'title' => 'Error', 'text' => $e->getMessage()]);
+        }
     }
 
     // NUEVA FUNCIÓN MAESTRA
@@ -318,5 +341,44 @@ class EstudianteComponent extends Component
         } else {
             $this->guardar();
         }
+    }
+
+    public function abrirModalRedes($estudianteId)
+    {
+        $this->estudianteSeleccionadoRedes = Estudiante::with('redes')->find($estudianteId);
+        $this->modalRedes = true;
+    }
+
+    public function asignarRed()
+    {
+        $this->validate([
+            'red_id' => 'required',
+            'observacion_red' => 'required',
+        ]);
+
+        $this->estudianteSeleccionadoRedes->redes()->attach($this->red_id, [
+            'observacion' => $this->observacion_red,
+            'activo' => true
+        ]);
+
+        $this->reset(['red_id', 'observacion_red']);
+        $this->estudianteSeleccionadoRedes->load('redes'); // Refrescar lista
+        $this->modalRedes = false;
+        $this->dispatch('swal', ['icon' => 'success', 'title' => 'Red asignada','timer'=>1500]);
+    }
+
+    public function desvincularRed($redId)
+    {
+        if ($this->estudianteSeleccionadoRedes) {
+            $this->estudianteSeleccionadoRedes->redes()->detach($redId);
+            $this->estudianteSeleccionadoRedes->load('redes'); // Refresca la lista en el modal
+            $this->dispatch('swal', [
+                'icon' => 'success',
+                'title' => 'Red eliminada',
+                'text' => 'Se ha quitado el vínculo con la institución.',
+                'timer' => 1500
+            ]);
+        }
+        $this->modalRedes = false;
     }
 }

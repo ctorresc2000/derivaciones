@@ -38,4 +38,11 @@ class Estudiante extends Model
     {
         return $this->hasMany(Derivarestudiante::class, 'estudiante_id');
     }
+
+    public function redes()
+    {
+        return $this->belongsToMany(RedesApoyo::class, 'estudiante_red_apoyo', 'estudiante_id', 'red_apoyo_id')
+                    ->withPivot('observacion', 'activo')
+                    ->withTimestamps();
+    }
 }

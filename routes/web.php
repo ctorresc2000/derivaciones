@@ -15,10 +15,13 @@ use App\Livewire\User\ProfesionalesComponent;
 use App\Livewire\User\TipoprofesionalComponent;
 use App\Livewire\User\UserComponent;
 use App\Livewire\Estudiante\HistorialComponent;
+use App\Livewire\Ingresos\RedesComponent;
 use Illuminate\Support\Facades\Route;
 use App\Models\Estudiante;
 use Illuminate\Support\Facades\Artisan;
+use App\Http\Controllers\EntrevistaExportController;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Container\Attributes\Auth;
 
 Route::redirect('/', '/login')->name('home');
 
@@ -41,6 +44,10 @@ Route::get('/motivointervencion', MotivointervencionComponent::class)->name('mot
 Route::get('/tipointervencion', TipointervencionComponent::class)->name('tipointervencion')->middleware('rol:Administrador');
 Route::get('/estudiantesderivados', EstudiantederivadoComponent::class)->name('estudiantesderivados')->middleware('rol:Administrador,Usuario');
 Route::get('/intervenciones', IntervencionesComponent::class)->name('intervenciones')->middleware('rol:Administrador,Usuario');
+Route::get('/redes', RedesComponent::class)->name('redes')->middleware('rol:Administrador');
+Route::get('/entrevistas', EntrevistaComponent::class)->name('entrevistas')->middleware('rol:Administrador,Usuario');
+Route::get('/cardex', CardexComponent::class)->name('cardex')->middleware('rol:Administrador,Usuario');
+
 
 Route::get('/instalar', function () {
     Artisan::call('storage:link');
@@ -120,6 +127,9 @@ Route::get('/estudiante/{id}/historial-pdf', function ($id) {
 
     return $pdf->stream('Historial_'.$estudiante->apellido.'.pdf');
 })->name('historial.pdf')->middleware('rol:Administrador,Usuario');
+
+Route::get('/entrevista/{entrevista}/pdf', [EntrevistaExportController::class, 'download'])
+    ->name('entrevista.pdf')->middleware('rol:Administrador,Usuario');
 
     // Ruta para el historial del estudiante en la vista Livewire
 

@@ -98,7 +98,19 @@
                     <option value="otro">Otro...</option>
                 </flux:select>
             </div>
-            <flux:input type="file" wire:model="archivos" label="Adjuntar documento" multiple />
+            <div class=" p-4 rounded-lg bg-white-800/50 border border-white-700/50">
+                <h3 class="text-sm font-semibold text-black mb-3">Adjuntar Documentos:</h3>
+                <flux:input
+                    type="file"
+                    wire:model="archivos"
+                    multiple
+                    accept=".pdf,.doc,.docx,.jpg,.png"
+                />
+                {{-- Indicador de carga --}}
+                <div wire:loading wire:target="archivos" class="text-xs text-blue-400 mt-1">
+                    Cargando archivos...
+                </div>
+            </div>
         </div>
 
         {{-- TABLA DINÁMICA --}}
@@ -143,7 +155,7 @@
                                     <td class="px-6 py-3">{{ $item['motivo_nombre'] }}</td>
                                     <td class="px-6 py-3 border-l">{{ $item['tipo_nombre'] }}</td>
                                     <td class="px-6 py-3 text-center border-l">
-                                        <flux:button size="sm" variant="subtle" wire:click="eliminarDato({{ $index }})" class="text-red-600">
+                                        <flux:button size="sm" variant="subtle" wire:click="quitarDato({{ $index }})" class="text-red-600">
                                             <i class="fa-solid fa-trash"></i>
                                         </flux:button>
                                     </td>

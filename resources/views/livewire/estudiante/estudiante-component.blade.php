@@ -332,10 +332,24 @@
                     </div>
                 </div>
                 <div>
-                    <flux:text  class="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-2">
-                            Adjunte algún archivo <small class="text-xs">(opcional)</small>
-                        </flux:text>
-                    <flux:input type="file" wire:model="archivo_adjunto"/>
+                    <div class="mt-4">
+                        <flux:label>Adjuntar Documentos (Opcional)</flux:label>
+                        <flux:input
+                            type="file"
+                            wire:model="archivo_adjunto"
+                            multiple
+                            accept=".pdf,.doc,.docx,.jpg,.png"
+                        />
+
+                        {{-- Indicador de progreso para múltiples archivos --}}
+                        <div wire:loading wire:target="archivo_adjunto" class="text-xs text-blue-500 mt-2">
+                            <i class="fa-solid fa-spinner fa-spin mr-1"></i> Subiendo archivos al servidor...
+                        </div>
+
+                        @error('archivo_adjunto.*')
+                            <span class="text-red-500 text-xs">{{ $message }}</span>
+                        @enderror
+                    </div>
                 </div>
 
                     {{-- @dump($cursos) --}}
@@ -390,6 +404,49 @@
                 </flux:button>
             </div>
         </flux:card>
+    </flux:modal>
+
+    <flux:modal wire:model="modalRedes" class="md:w-1/2">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="xl">Redes de Apoyo</flux:heading>
+                <flux:subheading>Estudiante: {{ $estudianteSeleccionadoRedes?->nombre }} {{ $estudianteSeleccionadoRedes?->apellido }}</flux:subheading>
+            </div>
+
+            {{-- LISTADO ACTUAL --}}
+            <div class="space-y-2">
+                <p class="text-xs font-bold uppercase text-slate-400">Centros vinculados actualmente:</p>
+                @if($estudianteSeleccionadoRedes && $estudianteSeleccionadoRedes->redes->count() > 0)
+                    @foreach($estudianteSeleccionadoRedes->redes as $red)
+                        <div class="flex justify-between items-center p-3 bg-slate-50 border rounded-lg">
+                            <div>
+                                <p class="text-sm font-bold">{{ $red->nombre }}</p>
+                                <p class="text-xs text-slate-500">{{ $red->pivot->observacion }}</p>
+                            </div>
+                            <flux:button variant="ghost" icon="trash" wire:click="desvincularRed({{ $red->id }})" />
+                        </div>
+                    @endforeach
+                @else
+                    <p class="text-sm italic text-slate-400">No tiene redes asignadas.</p>
+                @endif
+            </div>
+
+            <hr>
+
+            {{-- FORMULARIO DE ASIGNACIÓN --}}
+            <div class="grid gap-4">
+                <flux:select label="Nueva Red" wire:model="red_id">
+                    <flux:select.option value="">Seleccione un Centro</flux:select.option>
+                    @foreach($redes as $red) {{-- Asegúrate de pasar $redes desde el render --}}
+                        <flux:select.option value="{{ $red->id }}">{{ $red->nombre }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+
+                <flux:input label="Contacto: (Nombre, Teléfono, Correo Electrónico)" wire:model="observacion_red" placeholder="Ej. Juan Pérez, +56958745269, correo@mail.com" />
+
+                <flux:button variant="primary" wire:click="asignarRed">Vincular Estudiante</flux:button>
+            </div>
+        </div>
     </flux:modal>
 
 </div>

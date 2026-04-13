@@ -15,10 +15,12 @@ use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\NotificacionCopiaMail;
+use App\Traits\HasDocuments;
 
 class IntervencionpsicosocialComponent extends Component
 {
     use WithFileUploads;
+    use HasDocuments;
 
     public $estudiante;
     public $derivacion_destino;
@@ -91,70 +93,99 @@ class IntervencionpsicosocialComponent extends Component
     {
         $this->validate([
             'via_ingreso_id' => 'required',
-            'descripcion_derivacion' => 'required',
+            'descripcion_derivacion' => 'required|min:5',
         ]);
 
-        DB::transaction(function () {
-            $intervencion = Intervencion::create([
-                'estudiante_id' => $this->estudiante->id,
-                'usuario_id' => Auth::user()->id,
-                'fecha' => now(),
-                'via_ingreso_id' => $this->via_ingreso_id,
-                'descripcion' => $this->descripcion_derivacion,
-                'tipo_intervencion' => 'Psicosocial',
-                'estado' => 'Abierta',
-            ]);
-
-            foreach ($this->listaDatosAgregados as $item) {
-                $intervencion->detalles()->create([
-                    'motivo_intervencion_id' => $item['motivo_id'],
-                    'tipo_intervencion_id' => $item['tipo_id'],
-                    'falta_id' => null,
-                    'medida_id' => null,
+        try {
+            DB::transaction(function () {
+                // 1. Crear la Intervención
+                $intervencion = Intervencion::create([
+                    'estudiante_id'  => $this->estudiante->id,
+                    'usuario_id'     => auth()->id(),
+                    'via_ingreso_id' => $this->via_ingreso_id,
+                    'descripcion'    => $this->descripcion_derivacion,
+                    'fecha'          => now(),
                 ]);
-            }
 
-           // dd($this->listaDatosAgregados);
-
-            if (!empty($this->usuariosSeleccionados)) {
-                $usuariosDestino = User::whereIn('id', $this->usuariosSeleccionados)->get();
-                $tipoRegistro = 'Intervención Psicosocial';
-
-                foreach ($usuariosDestino as $usuario) {
-                    if ($usuario->email) {
-                        // Importante: Cargar las relaciones correctas para el Mail
-                        $intervencion->load('detalles.motivoIntervencion', 'detalles.tipoIntervencion');
-                        Mail::to($usuario->email)->send(new NotificacionCopiaMail($this->estudiante, $tipoRegistro, $intervencion, $this->listaDatosAgregados));
+                // 2. Guardar Detalles específicos de Psicosocial
+                if (!empty($this->listaDatosAgregados)) {
+                    foreach ($this->listaDatosAgregados as $item) {
+                        $intervencion->detalles()->create([
+                            'motivo_intervencion_id' => $item['motivo_id'],
+                            'tipo_intervencion_id'   => $item['tipo_id'],
+                            'falta_id'               => null,
+                            'medida_id'              => null,
+                        ]);
                     }
                 }
-            }
-        });
 
-        $this->dispatch('swal', [
-            'icon' => 'success',
-            'title' => 'Felicitaciones',
-            'text' => 'Registro Guardado Exitósamente',
-            'timer' => 2500
-        ]);
+                // 3. GUARDADO DE ARCHIVOS (Metodología HasDocuments)
+                if (!empty($this->archivos)) {
+                    foreach ($this->archivos as $archivo) {
+                        $rutaGuardada = $archivo->store("documents/intervenciones/{$intervencion->id}", 'public');
 
-        return redirect()->route('estudiantes');
+                        $intervencion->documents()->create([
+                            'name'      => $archivo->getClientOriginalName(),
+                            'file_path' => $rutaGuardada,
+                            'mime_type' => $archivo->getClientMimeType(),
+                            'size'      => $archivo->getSize(),
+                        ]);
+                    }
+                }
+
+                // 4. Envío de correos
+                if (!empty($this->usuariosSeleccionados)) {
+                    $usuariosDestino = User::whereIn('id', $this->usuariosSeleccionados)->get();
+                    $tipoRegistro = 'Intervención Psicosocial';
+
+                    foreach ($usuariosDestino as $usuario) {
+                        if ($usuario->email) {
+                            $intervencion->load('detalles.motivoIntervencion', 'detalles.tipoIntervencion');
+                            Mail::to($usuario->email)->send(new NotificacionCopiaMail(
+                                $this->estudiante,
+                                $tipoRegistro,
+                                $intervencion,
+                                $this->listaDatosAgregados
+                            ));
+                        }
+                    }
+                }
+            });
+
+            // 5. Feedback y Redirección
+            $this->dispatch('swal', [
+                'icon' => 'success',
+                'title' => 'Felicitaciones',
+                'text' => 'Registro Psicosocial Guardado Exitósamente',
+                'timer' => 2500
+            ]);
+
+            return redirect()->route('estudiantes');
+
+        } catch (\Exception $e) {
+            $this->dispatch('swal', [
+                'icon' => 'error',
+                'title' => 'Error',
+                'text' => 'No se pudo guardar: ' . $e->getMessage(),
+            ]);
+        }
     }
 
     // En IntervencionpsicosocialComponent.php
 
-public function updatedViaIngresoId($value)
-{
-    if ($value === 'otro') {
-        $this->dispatch('pedir-nueva-via');
+    public function updatedViaIngresoId($value)
+    {
+        if ($value === 'otro') {
+            $this->dispatch('pedir-nueva-via');
+        }
     }
-}
 
-public function guardarNuevaVia($nombre)
-{
-    $nuevaVia = Viaingreso::create(['via_ingreso' => $nombre]);
-    $this->viaingresos = Viaingreso::all(); // Recargar lista
-    $this->via_ingreso_id = $nuevaVia->id;
-}
+    public function guardarNuevaVia($nombre)
+    {
+        $nuevaVia = Viaingreso::create(['via_ingreso' => $nombre]);
+        $this->viaingresos = Viaingreso::all(); // Recargar lista
+        $this->via_ingreso_id = $nuevaVia->id;
+    }
 
 // Asegúrate de que agregarDato use los nombres de llaves correctos para la tabla
 

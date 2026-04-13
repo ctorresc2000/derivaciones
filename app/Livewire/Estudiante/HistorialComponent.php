@@ -23,11 +23,12 @@ class HistorialComponent extends Component
             'intervenciones.detalles.motivo',
             'intervenciones.detalles.tipo',
             'intervenciones.viaIngreso',
-            'intervenciones.documents',
+            'intervenciones.archivos',
             'derivaciones.user',
             'derivaciones.motivo',
             'derivaciones.acciones.usuario',
-            'derivaciones.documents'
+            'derivaciones.documents',
+            'redes'
         ])->findOrFail($id);
 
         $this->prepararDatos();
@@ -84,10 +85,12 @@ class HistorialComponent extends Component
 
     public function abrirModalArchivos($id, $tipo = 'intervencion')
     {
+        // Buscamos en la colección correspondiente
         $modelo = ($tipo === 'intervencion') ? $this->estudiante->intervenciones : $this->estudiante->derivaciones;
         $registro = $modelo->find($id);
 
         if ($registro) {
+            // IMPORTANTE: Ahora ambos usan la relación 'documents' del Trait
             $this->documentosMostrar = $registro->documents;
             $this->verArchivosModal = true;
         }

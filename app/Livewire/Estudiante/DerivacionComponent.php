@@ -15,10 +15,11 @@ use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\NotificacionCopiaMail;
+use App\Traits\HasDocuments;
 
 class DerivacionComponent extends Component
 {
-
+    use HasDocuments; // 2. Lo usas dentro de la clase
     use WithFileUploads;
 
     public $estudiante;
@@ -130,93 +131,82 @@ class DerivacionComponent extends Component
     {
         $this->validate([
             'via_ingreso_id' => 'required',
-            'descripcion_derivacion' => 'required|min:10',
+            'descripcion_derivacion' => 'required|min:5',
         ]);
 
-        DB::transaction(function () {
+        try {
+            DB::transaction(function () {
+                // 1. Crear Intervención
+                $intervencion = Intervencion::create([
+                    'estudiante_id'  => $this->estudiante->id,
+                    'usuario_id'     => auth()->id(),
+                    'via_ingreso_id' => $this->via_ingreso_id,
+                    'descripcion'    => $this->descripcion_derivacion,
+                    'fecha'          => now(),
+                ]);
 
-            $intervencion = Intervencion::create([
-                'estudiante_id'  => $this->estudiante->id,
-                'usuario_id'     => auth()->id(),
-                'via_ingreso_id' => $this->via_ingreso_id,
-                'descripcion'    => $this->descripcion_derivacion,
-                'fecha'          => now(),
-            ]);
-
-            if (!empty($this->listaDatosAgregados)) {
-                foreach ($this->listaDatosAgregados as $item) {
-                    $intervencion->detalles()->create([
-                        'falta_id'  => $item['falta_id'],
-                        'medida_id' => $item['medida_id'],
-                        'motivo_intervencion_id' => null, // Aseguramos que vaya vacío
-                        'tipo_intervencion_id' => null,
-                    ]);
-                }
-            }
-
-
-            // 👇 LO NUEVO: Guardado polimórfico de múltiples archivos 👇
-            if (!empty($this->archivos)) {
-                foreach ($this->archivos as $archivo) {
-
-                    // Se crea una carpeta con el ID de la intervención para mantener el orden
-                    $rutaFisica = $archivo->store("documents/intervenciones/{$intervencion->id}", 'public');
-
-                    $intervencion->documents()->create([
-                        'name'      => $archivo->getClientOriginalName(),
-                        'file_path' => $rutaFisica,
-                        'mime_type' => $archivo->getClientMimeType(),
-                        'size'      => $archivo->getSize(),
-                    ]);
-                }
-            }
-
-            if (!empty($this->usuariosSeleccionados)) {
-                // 1. Buscamos a los usuarios
-                $usuariosDestino = User::whereIn('id', $this->usuariosSeleccionados)->get();
-
-                // 2. Definimos el título según el contexto (Convivencia en este caso)
-                $tipoRegistro = 'Intervención de Convivencia Escolar';
-
-                // CARGAMOS LOS DETALLES: Esto trae las faltas y medidas de la DB
-                $intervencion->load('detalles.falta', 'detalles.medida');
-                //dd($this->listaDatosAgregados);
-
-                foreach ($usuariosDestino as $usuario) {
-                    if ($usuario->email) {
-                        // Cargamos las relaciones para que el correo pueda mostrarlas
-                        $intervencion->load('detalles.falta', 'detalles.medida');
-
-                        Mail::to($usuario->email)->send(new NotificacionCopiaMail($this->estudiante, $tipoRegistro, $intervencion,$this->listaDatosAgregados));
+                // 2. Guardar Detalles
+                if (!empty($this->listaDatosAgregados)) {
+                    foreach ($this->listaDatosAgregados as $item) {
+                        $intervencion->detalles()->create([
+                            'falta_id'  => $item['falta_id'],
+                            'medida_id' => $item['medida_id'],
+                        ]);
                     }
                 }
 
-                // 3. Envío de correos
-                // foreach ($usuariosDestino as $usuario) {
-                //     if (!empty($usuario->email)) {
-                //         // Pasamos: 1. El estudiante, 2. El título, 3. El objeto de la intervención recién creada
-                //         Mail::to($usuario->email)->send(new NotificacionCopiaMail($this->estudiante, $tipoRegistro, $intervencion));
-                //     }
-                // }
-            }
+                // 3. Guardar Archivos (Metodología HasDocuments)
+                if (!empty($this->archivos)) {
+                    foreach ($this->archivos as $archivo) {
+                        $rutaGuardada = $archivo->store("documents/intervenciones/{$intervencion->id}", 'public');
+                        $intervencion->documents()->create([
+                            'name'      => $archivo->getClientOriginalName(),
+                            'file_path' => $rutaGuardada,
+                            'mime_type' => $archivo->getClientMimeType(),
+                            'size'      => $archivo->getSize(),
+                        ]);
+                    }
+                }
 
-        });
+                // 4. Envío de Correos
+                if (!empty($this->usuariosSeleccionados)) {
+                    $usuariosDestino = User::whereIn('id', $this->usuariosSeleccionados)->get();
+                    $tipoRegistro = 'Intervención de Convivencia Escolar';
+                    $intervencion->load('detalles.falta', 'detalles.medida');
 
-        $this->reset([
-            'via_ingreso_id',
-            'descripcion_derivacion',
-            'listaDatosAgregados',
-            'usuariosSeleccionados',
-            'archivos'
-        ]);
+                    foreach ($usuariosDestino as $usuario) {
+                        if ($usuario->email) {
+                            Mail::to($usuario->email)->send(new NotificacionCopiaMail(
+                                $this->estudiante,
+                                $tipoRegistro,
+                                $intervencion,
+                                $this->listaDatosAgregados
+                            ));
+                        }
+                    }
+                }
+            });
 
-        $this->dispatch('swal', [
-            'icon' => 'success',
-            'title' => 'Felicitaciones',
-            'text' => 'Registro Guardado Exitósamente',
-            'timer' => 2500
-        ]);
+            // --- FUERA DE LA TRANSACCIÓN ---
 
-        redirect()->route('estudiantes');
+            // 5. Lanzar la alerta (usando flash para que sobreviva a la redirección)
+            $this->dispatch('swal', [
+                'icon' => 'success',
+                'title' => 'Felicitaciones',
+                'text' => 'Registro Guardado Exitosamente',
+                'timer' => 2500
+            ]);
+
+            // 6. Redirigir
+            return redirect()->route('estudiantes');
+
+        } catch (\Exception $e) {
+            // En caso de error, mostrar alerta de error
+            $this->dispatch('swal', [
+                'icon' => 'error',
+                'title' => 'Error',
+                'text' => 'No se pudo guardar: ' . $e->getMessage(),
+            ]);
+        }
     }
 }
