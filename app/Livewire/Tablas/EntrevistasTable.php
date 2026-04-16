@@ -38,7 +38,21 @@ final class EntrevistasTable extends PowerGridComponent
 
     public function datasource(): Builder
     {
-        return Entrevista::query()->with(['estudiante', 'curso', 'user'])->orderBy('fecha', 'desc');
+        //return Entrevista::query()->with(['estudiante', 'curso', 'user'])->orderBy('fecha', 'desc');
+
+       return Entrevista::query()
+            // Join con Cursos
+            ->join('cursos', 'entrevistas.curso_id', '=', 'cursos.id')
+            // Join con Estudiantes
+            ->join('estudiantes', 'entrevistas.estudiante_id', '=', 'estudiantes.id')
+            // UN SOLO select con todos los alias necesarios
+            ->select([
+                'entrevistas.*',
+                'cursos.curso as curso_nombre_orden',
+                // Concatenamos para ordenar alfabéticamente por apellido
+                \DB::raw('CONCAT(estudiantes.apellido, " ", estudiantes.nombre) as estudiante_orden')
+            ])
+            ->with(['user']); // Las relaciones simples se mantienen con with
     }
 
     public function relationSearch(): array
@@ -49,7 +63,7 @@ final class EntrevistasTable extends PowerGridComponent
                 'apellido',  // Campo en la tabla 'estudiantes'
             ],
             'curso' => [
-                'curso',
+                'entrevistas.curso_id   ',
             ],
             'user' => [
                 'name',
@@ -74,6 +88,7 @@ final class EntrevistasTable extends PowerGridComponent
                 return $model->estudiante ? ($model->estudiante->nombre . ' ' . $model->estudiante->apellido) : 'N/A';
             })
             // Extraemos el nombre del curso
+            ->add('curso_nombre_orden')
             ->add('curso_nombre', function (Entrevista $model) {
                 return $model->curso ? $model->curso->curso : 'N/A'; // Asegúrate que el campo en BD sea 'curso' o 'nombre'
             })
@@ -104,11 +119,11 @@ final class EntrevistasTable extends PowerGridComponent
                 ->sortable()
                 ->searchable(),
 
-            Column::make('Estudiante', 'estudiante_nombre')
+            Column::make('Estudiante', 'estudiante_orden') // Sin el espacio al final
                 ->sortable()
                 ->searchable(),
 
-            Column::make('Curso', 'curso_nombre','curso_id') // Sin el espacio al final
+            Column::make('Curso', 'curso_nombre','curso_nombre_orden') // Sin el espacio al final
                 ->sortable()
                 ->searchable(),
 
@@ -140,10 +155,12 @@ final class EntrevistasTable extends PowerGridComponent
             Filter::boolean('es_apoderado')
                 ->label('Apoderado', 'Estudiante'),
             Filter::datepicker('fecha'),
-            Filter::select('curso_id') // El campo de la tabla estudiantes por el que vamos a filtrar
-                ->dataSource(Curso::all()) // Obtenemos todos los cursos directamente de la BD
-                ->optionLabel('curso') // Lo que ve el usuario (el nombre del curso)
-                ->optionValue('id'),   // El valor que se usa internamente para filtrar (el ID),
+
+            // 3. Filtro de Curso: Usamos 'entrevistas.curso_id' para evitar ambigüedad
+            Filter::select('curso_nombre', 'entrevistas.curso_id')
+                ->dataSource(Curso::all())
+                ->optionLabel('curso')
+                ->optionValue('id'),
             Filter::select('user_id') // El campo de la tabla estudiantes por el que vamos a filtrar
                 ->dataSource(User::all()) // Obtenemos todos los cursos directamente de la BD
                 ->optionLabel('name') // Lo que ve el usuario (el nombre del usuario)

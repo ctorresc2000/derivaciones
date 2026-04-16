@@ -10,8 +10,11 @@
     </style>
 </head>
 <body>
+
     <h2>Notificación de Registro: {{ $tipoRegistro }}</h2>
     <p>Se ha registrado una nueva actividad para el estudiante: <strong>{{ $estudiante->nombre }} {{ $estudiante->apellido }}</strong></p>
+    <p>Realizada por: <strong>{{ $registro->user->name }}</strong>, con Fecha: <strong>{{\Carbon\Carbon::parse($registro->created_at)->format('d/m/Y H:i') }}</strong></p>
+    <p>Por la Siguiente Vía de Ingreso: <strong>{{ $registro->viaIngreso->via_ingreso }}</strong></p>
 
     <table style="width: 100%; border-collapse: collapse; font-family: sans-serif;">
         <thead>

@@ -139,7 +139,7 @@ class DerivacionComponent extends Component
                 // 1. Crear Intervención
                 $intervencion = Intervencion::create([
                     'estudiante_id'  => $this->estudiante->id,
-                    'usuario_id'     => auth()->id(),
+                    'usuario_id'     => auth()->id(), // Asegúrate que el campo sea 'usuario_id' o 'user_id'
                     'via_ingreso_id' => $this->via_ingreso_id,
                     'descripcion'    => $this->descripcion_derivacion,
                     'fecha'          => now(),
@@ -155,13 +155,13 @@ class DerivacionComponent extends Component
                     }
                 }
 
-                // 3. Guardar Archivos (Metodología HasDocuments)
+                // 3. Guardar Archivos (HasDocuments)
                 if (!empty($this->archivos)) {
                     foreach ($this->archivos as $archivo) {
                         $rutaGuardada = $archivo->store("documents/intervenciones/{$intervencion->id}", 'public');
                         $intervencion->documents()->create([
                             'name'      => $archivo->getClientOriginalName(),
-                            'file_path' => $rutaGuardada,
+                            'file_path' => $rutaGuardada, // Verifica si tu modelo usa 'file_path' o 'ruta_archivo'
                             'mime_type' => $archivo->getClientMimeType(),
                             'size'      => $archivo->getSize(),
                         ]);
@@ -170,9 +170,11 @@ class DerivacionComponent extends Component
 
                 // 4. Envío de Correos
                 if (!empty($this->usuariosSeleccionados)) {
+                    // CARGA CRÍTICA: Cargar relaciones antes de enviar
+                    $intervencion->load(['documents', 'user', 'viaIngreso']);
+
                     $usuariosDestino = User::whereIn('id', $this->usuariosSeleccionados)->get();
                     $tipoRegistro = 'Intervención de Convivencia Escolar';
-                    $intervencion->load('detalles.falta', 'detalles.medida');
 
                     foreach ($usuariosDestino as $usuario) {
                         if ($usuario->email) {
@@ -187,9 +189,6 @@ class DerivacionComponent extends Component
                 }
             });
 
-            // --- FUERA DE LA TRANSACCIÓN ---
-
-            // 5. Lanzar la alerta (usando flash para que sobreviva a la redirección)
             $this->dispatch('swal', [
                 'icon' => 'success',
                 'title' => 'Felicitaciones',
@@ -197,11 +196,9 @@ class DerivacionComponent extends Component
                 'timer' => 2500
             ]);
 
-            // 6. Redirigir
             return redirect()->route('estudiantes');
 
         } catch (\Exception $e) {
-            // En caso de error, mostrar alerta de error
             $this->dispatch('swal', [
                 'icon' => 'error',
                 'title' => 'Error',

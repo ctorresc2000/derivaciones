@@ -65,6 +65,7 @@
             {{-- ... resto de opciones --}}
         </flux:select>
     </div>
+
     <div class="mb-6">
         <flux:textarea label="Detalle de la entrevista" wire:model="detalle" />
     </div>
@@ -159,10 +160,10 @@
 
     // Escuchar la orden de Livewire
     window.addEventListener('solicitar-firma', event => {
-        if (signaturePad.isEmpty()) {
-            alert("Debe firmar para continuar");
-            return;
-        }
+        //if (signaturePad.isEmpty()) {
+        //   alert("Debe firmar para continuar");
+        //    return;
+        //}
 
         // Obtenemos la imagen original
         const dataURL = signaturePad.toDataURL();

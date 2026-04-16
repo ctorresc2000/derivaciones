@@ -168,7 +168,7 @@ class UserComponent extends Component
          $this->email = $user->email;
          //$this->social = $user->social;
          $this->rol = $user->rol;
-         $this->tipo_de_profesional = $user->tipo_profesional;
+         $this->tipo_de_profesional = $user->tipo_profesional_id;
          $this->abrirModal = true;
      }
 }

@@ -13,7 +13,8 @@ use Livewire\Component;
 class EntrevistaComponent extends Component
 {
     public $curso_id, $estudiante_id, $es_apoderado = false, $nombre_apoderado;
-    public $motivo, $detalle, $fecha, $firma;
+    public $motivo, $detalle, $firma;
+    public $fecha;
     public $estudiantes = [];
     //public $cursos=[];
 
@@ -22,6 +23,12 @@ class EntrevistaComponent extends Component
     public $codigo_ingresado;
     public $otp_verificado = false;
     public $mostrar_campo_codigo = false;
+
+    public function mount()
+    {
+        // Asigna la fecha actual al cargar el formulario
+        $this->fecha = now()->format('Y-m-d');
+    }
 
     public function enviarCodigoOTP()
     {
@@ -145,6 +152,7 @@ class EntrevistaComponent extends Component
 
     public function render()
     {
+
         return view('livewire.estudiante.entrevista-component', [
         'cursos' => Curso::orderBy('curso')->get(), // Verifica que 'nombre' sea el campo real
     ]);
