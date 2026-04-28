@@ -15,7 +15,9 @@ class Intervencion extends Model
         'via_ingreso_id',
         'descripcion',
         'estado',
-        'fecha'
+        'fecha',
+        'batch_id',
+        'tipo_intervencion',
     ];
 
     protected $casts = [
@@ -57,6 +59,11 @@ class Intervencion extends Model
     public function acciones()
     {
         return $this->hasMany(AccionIntervencion::class);
+    }
+
+    public function curso()
+    {
+        return $this->belongsTo(Curso::class);
     }
 
     // public function profesionalDerivado()

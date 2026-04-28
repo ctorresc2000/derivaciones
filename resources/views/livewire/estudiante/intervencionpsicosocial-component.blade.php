@@ -175,6 +175,22 @@
             <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2 border-b pb-2">
                 <i class="fa-solid fa-paragraph"></i> Descripción
             </h3>
+            <div class="flex justify-end">
+                <flux:button
+                    variant="subtle"
+                    size="sm"
+                    wire:click="mejorarTextoIA"
+                    wire:loading.attr="disabled"
+                    class="text-indigo-600 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100"
+                >
+                    <span wire:loading.remove wire:target="mejorarTextoIA">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Mejorar con IA
+                    </span>
+                    <span wire:loading wire:target="mejorarTextoIA">
+                        <i class="fa-solid fa-spinner animate-spin mr-2"></i> Procesando...
+                    </span>
+                </flux:button>
+            </div>
             <flux:textarea wire:model="descripcion_derivacion" placeholder="Escriba aquí..." />
         </div>
 

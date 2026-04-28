@@ -267,6 +267,22 @@
             <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-200 dark:border-zinc-700 pb-2">
                 <i class="fa-solid fa-paragraph"></i> Descripción de la Intervención
             </h3>
+            <div class="flex justify-end">
+                <flux:button
+                    variant="subtle"
+                    size="sm"
+                    wire:click="mejorarTextoIA"
+                        wire:loading.attr="disabled"
+                        class="text-indigo-600 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100"
+                    >
+                    <span wire:loading.remove wire:target="mejorarTextoIA">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Mejorar con IA
+                    </span>
+                    <span wire:loading wire:target="mejorarTextoIA">
+                        <i class="fa-solid fa-spinner animate-spin mr-2"></i> Procesando...
+                    </span>
+                </flux:button>
+            </div>
 
             <flux:textarea  wire:model="descripcion_derivacion" placeholder="Describa la derivació acá." />
 

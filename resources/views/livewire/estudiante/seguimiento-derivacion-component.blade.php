@@ -15,6 +15,22 @@
             {{-- Zona para Registrar Nueva Acción --}}
             <div class="mb-6 p-4 bg-slate-50 dark:bg-neutral-900 rounded-xl border border-slate-200 dark:border-neutral-700">
                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Registrar nueva acción ({{ now()->format('d-m-Y') }}):</label>
+                <div class="flex justify-end">
+                    <flux:button
+                        variant="subtle"
+                        size="sm"
+                        wire:click="mejorarTextoIAseguimiento"
+                            wire:loading.attr="disabled"
+                            class="text-indigo-600 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100"
+                        >
+                        <span wire:loading.remove wire:target="mejorarTextoIA">
+                            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Mejorar con IA
+                        </span>
+                        <span wire:loading wire:target="mejorarTextoIA">
+                            <i class="fa-solid fa-spinner animate-spin mr-2"></i> Procesando...
+                        </span>
+                    </flux:button>
+                </div>
                 <flux:textarea wire:model="descripcion_accion" rows="3" placeholder="Escriba aquí los detalles de la nueva acción realizada..."></flux:textarea>
                 @error('descripcion_accion') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
 

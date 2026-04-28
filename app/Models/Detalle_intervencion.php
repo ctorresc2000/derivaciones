@@ -12,6 +12,7 @@ class Detalle_intervencion extends Model
         'medida_id',
         'motivo_intervencion_id',
         'tipo_intervencion_id',
+        //'detalle'
     ];
 
     // --- RELACIONES PARA PSICOSOCIAL ---

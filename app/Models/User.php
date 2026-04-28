@@ -71,7 +71,7 @@ class User extends Authenticatable
     // 1. Relación con el Tipo (Cargo)
     public function tipoProfesional()
     {
-        return $this->belongsTo(TipoProfesional::class, 'tipo_profesional_id');
+        return $this->belongsTo(Tipoprofesional::class, 'tipo_profesional_id');
     }
 
     public function esTipo($nombre)

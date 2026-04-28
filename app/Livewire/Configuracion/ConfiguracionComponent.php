@@ -7,6 +7,7 @@ use Livewire\WithFileUploads; // <- IMPORTANTE: Permite subir archivos
 use App\Models\Configuracion;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Attributes\On;
 
 class ConfiguracionComponent extends Component
 {
@@ -122,5 +123,43 @@ class ConfiguracionComponent extends Component
             'title' => 'Datos base importados correctamente',
             'icon' => 'success'
         ]);
+    }
+
+    // #[On('guardarTextoManual')]
+    // public function guardarTextoManual($texto) // <-- Cambiamos $data por $texto
+    // {
+    //     if (!empty($texto)) {
+    //         // Guardamos el contenido en el archivo manual.txt
+    //         Storage::disk('public')->put('manual.txt', $texto);
+
+    //         $this->dispatch('swal', [
+    //             'title' => 'Manual procesado',
+    //             'text' => 'El contenido del PDF ha sido indexado correctamente para la IA.',
+    //             'icon' => 'success'
+    //         ]);
+    //     }
+    // }
+
+    #[On('guardarTextoManual')]
+    public function guardarTextoManual($texto)
+    {
+        if (!empty($texto)) {
+            // 1. Quitamos saltos de línea, tabulaciones y espacios dobles
+            // Esto reduce el tamaño un 30% sin perder información
+            $textoLimpio = preg_replace('/\s+/', ' ', $texto);
+
+            // 2. Recorte de seguridad para el Tier gratuito de Groq
+            // 15,000 caracteres es ideal para no pasarse de los 6,000 TPM (Tokens per Minute)
+            $textoOptimizado = mb_substr($textoLimpio, 0, 15000);
+
+            // 3. Sobreescribimos el archivo viejo
+            Storage::disk('public')->put('manual.txt', $textoOptimizado);
+
+            $this->dispatch('swal', [
+                'title' => 'Manual Optimizado',
+                'text' => 'El texto ha sido reducido para cumplir con los límites de la IA gratuita.',
+                'icon' => 'success'
+            ]);
+        }
     }
 }

@@ -4,6 +4,12 @@
     <hr class="mb-3">
 
     <div class="flex justify-end px-6">
+        {{-- <div class="flex gap-4 mb-4">
+            @if(count($selectedIds) > 0)
+                <flux:button wire:click="prepararMasivo" color="amber">Intervención</flux:button>
+                <flux:button wire:click="abrirModalPromocion" color="indigo">Cambiar Curso</flux:button>
+            @endif
+        </div> --}}
         <flux:button wire:click="$set('abrirModal', true)">
             <i class="fa-solid fa-circle-plus"></i><span class="ml-3">Nuevo Estudiante</span>
         </flux:button>
@@ -12,12 +18,46 @@
                 <i class="fa-solid fa-upload"></i><span class="ml-3">Subir Excel</span>
             </flux:button>
         @endif
+
+
     </div>
 
     <hr  class="mt-3 mb-3">
 
     {{-- {{$profesionales}} --}}
     @livewire('tablas.estudiante-table')
+
+
+    <flux:modal wire:model="modalMasivo" class="md:w-[600px]">
+        <div class="space-y-6">
+            <flux:heading size="lg">Registrar Intervención Grupal</flux:heading>
+            <flux:text>
+                Se aplicará a <b>{{ count($selectedIds) }}</b> estudiantes seleccionadas.
+            </flux:text>
+
+            <flux:select label="Vía de Ingreso / Área" wire:model="tipoMasivo">
+                <flux:select.option value="">Seleccione una opción...</flux:select.option>
+                @foreach($vias as $via)
+                    <flux:select.option value="{{ $via->id }}">{{ $via->via_ingreso }}</flux:select.option>
+                @endforeach
+            </flux:select>
+
+            <flux:textarea
+                label="Descripción de la intervención"
+                wire:model="detalleMasivo"
+                placeholder="Escriba aquí el detalle que aparecerá en la ficha de cada estudiante..."
+                rows="5"
+            />
+
+            <div class="flex justify-end gap-2">
+                <flux:button variant="ghost" wire:click="$set('modalMasivo', false)">Cancelar</flux:button>
+                <flux:button variant="primary" wire:click="guardarIntervencionMasiva">
+                    <span wire:loading.remove wire:target="guardarIntervencionMasiva">Guardar en todas las fichas</span>
+                    <span wire:loading wire:target="guardarIntervencionMasiva">Procesando...</span>
+                </flux:button>
+            </div>
+        </div>
+    </flux:modal>
 
     <flux:modal wire:model="abrirModal" :dismissible="false" :closable="false" class="w-full max-w-7xl">
 
@@ -315,6 +355,25 @@
                         <flux:text  class="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-4">
                             Detalle de la Derivacion
                         </flux:text>
+                        {{-- BOTÓN PARA MEJORAR CON IA --}}
+                        <div class="flex justify-end">
+                            <flux:button
+                                variant="subtle"
+                                size="sm"
+                                wire:click="mejorarTextoIAdetalle"
+                                wire:loading.attr="disabled"
+                                class="text-indigo-600 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100"
+                            >
+                                <span wire:loading.remove wire:target="mejorarTextoIA">
+                                    <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Mejorar con IA
+                                </span>
+                                <span wire:loading wire:target="mejorarTextoIA">
+                                    <i class="fa-solid fa-spinner animate-spin mr-2"></i> Procesando...
+                                </span>
+                            </flux:button>
+                        </div>
+
+                        {{-- Textarea para detalle de derivación --}}
                         <flux:textarea
                             wire:model="detalle_derivacion"
                             placeholder="Detalle aquí el motivo por el cual deriva a la estudiante...   "
@@ -325,6 +384,23 @@
                         <flux:text  class="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-4">
                             Acciones Previas
                         </flux:text>
+                        {{-- BOTÓN PARA MEJORAR CON IA --}}
+                        <div class="flex justify-end">
+                            <flux:button
+                                variant="subtle"
+                                size="sm"
+                                wire:click="mejorarTextoIAacciones"
+                                wire:loading.attr="disabled"
+                                class="text-indigo-600 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100"
+                            >
+                                <span wire:loading.remove wire:target="mejorarTextoIA">
+                                    <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Mejorar con IA
+                                </span>
+                                <span wire:loading wire:target="mejorarTextoIA">
+                                    <i class="fa-solid fa-spinner animate-spin mr-2"></i> Procesando...
+                                </span>
+                            </flux:button>
+                        </div>
                         <flux:textarea
                             wire:model="previos_derivacion"
                             placeholder="Detalle aquí que acciones tomó antes de derivar a la estudiante...   "
@@ -445,6 +521,36 @@
                 <flux:input label="Contacto: (Nombre, Teléfono, Correo Electrónico)" wire:model="observacion_red" placeholder="Ej. Juan Pérez, +56958745269, correo@mail.com" />
 
                 <flux:button variant="primary" wire:click="asignarRed">Vincular Estudiante</flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    {{-- Botón para abrir el modal de promoción (puedes ponerlo al lado del otro botón masivo) --}}
+    @if(count($selectedIds) > 0)
+        <flux:button wire:click="$set('modalPromocion', true)" variant="filled" color="indigo" class="mr-3">
+            <i class="fa-solid fa-graduation-cap"></i>
+            <span class="ml-2">Cambio de Curso ({{ count($selectedIds) }})</span>
+        </flux:button>
+    @endif
+
+    {{-- Modal de Cambio de Curso Masivo --}}
+    <flux:modal wire:model="modalPromocion" class="md:w-[500px]">
+        <div class="space-y-6">
+            <flux:heading size="lg">Cambio Masivo de Curso</flux:heading>
+            <flux:text>
+                Vas a mover a <b>{{ count($selectedIds) }}</b> estudiantes al siguiente curso.
+            </flux:text>
+
+            <flux:select label="Seleccione el Curso de Destino" wire:model="nuevo_curso_id">
+                <flux:select.option value="">Seleccione un curso...</flux:select.option>
+                @foreach($cursos as $curso)
+                    <flux:select.option value="{{ $curso->id }}">{{ $curso->curso }}</flux:select.option>
+                @endforeach
+            </flux:select>
+
+            <div class="flex gap-3 justify-end">
+                <flux:button variant="ghost" wire:click="$set('modalPromocion', false)">Cancelar</flux:button>
+                <flux:button variant="primary" wire:click="cambiarCursoMasivo">Confirmar Cambio</flux:button>
             </div>
         </div>
     </flux:modal>

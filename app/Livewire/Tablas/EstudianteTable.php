@@ -25,18 +25,22 @@ final class EstudianteTable extends PowerGridComponent
     public string $tableName = 'estudianteTable';
     public $visible=true;
     public array $detallesAbiertos = [];
+    public $data=[];
+
+    //public string $tableName = 'estudiantes-tabla';
 
     public $iconoBorrar ="<i class='fa-solid fa-trash'></i>";
 
     public function setUp(): array
     {
-        // $this->showCheckBox();
+        $this->showCheckBox();
 
         return [
             PowerGrid::header()
                 ->showSearchInput(),
+                //->showCheckBox(),
             PowerGrid::footer()
-                ->showPerPage()
+                ->showPerPage(40, [20, 40, 60, 100])
                 ->showRecordCount(),
 
             PowerGrid::detail()
@@ -46,6 +50,32 @@ final class EstudianteTable extends PowerGridComponent
             // PowerGrid::responsive()
         ];
     }
+
+    public function header(): array
+    {
+        return [
+            Button::add('bulk-intervencion')
+                // Este slot muestra el contador de seleccionados automáticamente
+                ->slot('Intervención Masiva')// (<span x-text="window.pgBulkActions.count(\'' . $this->tableName . '\')"></span>)')
+                ->class('bg-amber-500 text-white px-3 py-2 rounded-md text-sm font-semibold mr-4')
+                // Usamos el punto y el nombre de la tabla
+                ->dispatch('prepararMasivo.' . $this->tableName, []),
+
+            Button::add('bulk-curso')
+                ->slot('Cambiar Curso ')//(<span x-text="window.pgBulkActions.count(\'' . $this->tableName . '\')"></span>)
+                ->class('bg-indigo-600 text-white px-3 py-2 rounded-md text-sm font-semibold')
+                ->dispatch('abrirModalPromocion.' . $this->tableName, []),
+        ];
+    }
+
+    // public function header(): array
+    // {
+    //     return [
+    //         Button::add('bulk-delete')
+    //             ->slot('Bulk Delete')
+    //             ->dispatch('bulkDelete.' . $this->tableName, []),
+    //     ];
+    // }
 
     public function datasource(): Builder
     {
@@ -162,14 +192,14 @@ final class EstudianteTable extends PowerGridComponent
 
 
 
-        public function onUpdatedEditable($id, $field, $value): void
-        {
-            Estudiante::query()
-                ->find($id)
-                ->update([
-                    $field => $value
-                ]);
-        }
+    public function onUpdatedEditable($id, $field, $value): void
+    {
+        Estudiante::query()
+            ->find($id)
+            ->update([
+                $field => $value
+            ]);
+    }
 
     #[\Livewire\Attributes\On('edit')]
     public function edit($rowId): void
@@ -378,12 +408,25 @@ final class EstudianteTable extends PowerGridComponent
         return $botones;
     }
 
+    // #[On('limpiaTabla')]
+    // public function limpiaTabla()
+    // {
+    //     $this->js('window.pgBulkActions.clearAll("estudianteTable")');
+    // }
 
 
+    // #[On('idSeleccion.{tableName}')]
+    // public function idSeleccion(): void
+    // {
+    //     //dd('entra');
+    //     $this->js('alert(window.pgBulkActions.get(\'' . $this->tableName . '\'))');
+    // }
 
-        protected $listeners = [
-            'refreshTable' => '$refresh',
-        ];
+
+    protected $listeners = [
+        'refreshTable' => '$refresh',
+
+    ];
 
 
     /*

@@ -61,6 +61,9 @@
                             <span class="ml-3">Configuración</span>
                         </flux:sidebar.item>
                     @endif
+                        <flux:sidebar.item icon="magnifying-glass" class="cursor-pointer" x-on:click="$dispatch('abrir-modal-mc')">
+                            Consultar Manual (F6)
+                        </flux:sidebar.item>
                         <flux:sidebar.item :href="route('entrevistas')" :current="request()->routeIs('entrevistas')">
                             <i class="fa-solid fa-book"></i>
                             <span class="ml-3">Entrevistas</span>
@@ -239,6 +242,37 @@
             </svg>
             <span class="font-medium text-sm" x-text="mensaje"></span>
         </div>
+
+        {{-- Componente Modal (Debe estar aquí para ser global) --}}
+        @livewire('configuracion.consulta-manual-modal')
+
+        <script>
+            /**
+             * Definimos la función fuera para poder referenciarla
+             * tanto en la carga inicial como en las navegaciones.
+             */
+            function inicializarAtajoF6() {
+                // Primero eliminamos cualquier listener previo para evitar duplicados
+                window.removeEventListener('keydown', manejarTeclaF6);
+                window.addEventListener('keydown', manejarTeclaF6);
+            }
+
+            function manejarTeclaF6(e) {
+                if (e.key === 'F6') {
+                    e.preventDefault();
+                    console.log('F6 presionado: Despachando evento...');
+                    Livewire.dispatch('abrir-modal-mc');
+                }
+            }
+
+            // 1. Ejecución inmediata al cargar la página por primera vez
+            inicializarAtajoF6();
+
+            // 2. Ejecución cada vez que Livewire cambia de sección (Dashboard, etc.)
+            document.addEventListener('livewire:navigated', () => {
+                inicializarAtajoF6();
+            });
+        </script>
 
     </body>
 </html>

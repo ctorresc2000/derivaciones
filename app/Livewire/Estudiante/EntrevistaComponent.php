@@ -9,6 +9,7 @@ use App\Models\Estudiante;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Component;
+use Illuminate\Support\Facades\Http;
 
 class EntrevistaComponent extends Component
 {
@@ -16,6 +17,7 @@ class EntrevistaComponent extends Component
     public $motivo, $detalle, $firma;
     public $fecha;
     public $estudiantes = [];
+    public $mejorando = false;
     //public $cursos=[];
 
     // Nuevas propiedades para OTP
@@ -154,7 +156,46 @@ class EntrevistaComponent extends Component
     {
 
         return view('livewire.estudiante.entrevista-component', [
-        'cursos' => Curso::orderBy('curso')->get(), // Verifica que 'nombre' sea el campo real
-    ]);
+            'cursos' => Curso::orderBy('curso')->get(), // Verifica que 'nombre' sea el campo real
+        ]);
+    }
+
+    public function mejorarTextoIA()
+    {
+        if (empty($this->detalle)) return;
+        $this->mejorando = true;
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . env('GROQ_API_KEY'),
+                'Content-Type' => 'application/json',
+            ])->post('https://api.groq.com/openai/v1/chat/completions', [
+                'model' => 'llama-3.3-70b-versatile', // Modelo actualizado y vigente
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'Eres un corrector de estilo profesional para reportes escolares.'
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => 'Mejora la redacción y ortografía de este texto, manteniéndolo formal: ' . $this->detalle
+                    ]
+                ],
+                'temperature' => 0.5,
+            ]);
+
+            if ($response->successful()) {
+                $this->detalle = $response->json()['choices'][0]['message']['content'];
+                $this->dispatch('swal', ['icon' => 'success', 'title' => '¡Mejorado con éxito!']);
+            } else {
+                // Si Groq devuelve error, aquí veremos qué modelo sugiere usar
+                $errorDetail = $response->json()['error']['message'] ?? 'Error desconocido';
+                throw new \Exception($errorDetail);
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('swal', ['icon' => 'error', 'title' => 'Fallo la IA', 'text' => $e->getMessage()]);
+        }
+
+        $this->mejorando = false;
     }
 }

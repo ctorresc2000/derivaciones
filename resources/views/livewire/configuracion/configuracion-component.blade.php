@@ -66,6 +66,7 @@
                 </div>
             </div>
 
+
             <hr class="mb-3">
             <div class="flex justify-end">
 
@@ -80,6 +81,17 @@
 
 
         </form>
+
+        <div class="mt-8 p-6 bg-white dark:bg-zinc-900 border rounded-xl shadow-sm">
+            <flux:heading size="md">Manual de Convivencia Escolar</flux:heading>
+            <flux:text class="mb-4">Sube el PDF del reglamento para que la IA lo aprenda automáticamente.</flux:text>
+
+            <input type="file" id="pdf-upload" accept=".pdf" class="block w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"/>
+
+            <div id="status-pdf" class="mt-3 text-sm font-medium text-blue-600 hidden">
+                <i class="fa-solid fa-spinner animate-spin mr-2"></i> Procesando contenido del PDF...
+            </div>
+        </div>
 
         <div class="my-8 border-t border-gray-200 dark:border-zinc-700"></div>
 
@@ -106,6 +118,36 @@
         </div>
 
     </flux:card>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script>
+        document.getElementById('pdf-upload').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const status = document.getElementById('status-pdf');
+            status.classList.remove('hidden');
+
+            const reader = new FileReader();
+            reader.onload = async function() {
+                const typedarray = new Uint8Array(this.result);
+                const pdfJS = window['pdfjs-dist/build/pdf'];
+                pdfJS.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+                const pdf = await pdfJS.getDocument(typedarray).promise;
+                let fullText = '';
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    fullText += textContent.items.map(s => s.str).join(' ') + '\n';
+                }
+                // Enviar a Livewire
+                @this.dispatch('guardarTextoManual', { texto: fullText });
+                status.innerText = "✅ Manual procesado y listo.";
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
 
 
 </div>

@@ -16,6 +16,7 @@ use Livewire\Component;
 use Maatwebsite\Excel\Facades\Excel;
 use Livewire\WithFileUploads;
 use App\Traits\HasDocuments;
+use Illuminate\Support\Facades\Http;
 
 class EstudianteComponent extends Component
 {
@@ -56,6 +57,16 @@ class EstudianteComponent extends Component
     public $estudianteSeleccionadoRedes;
     public $red_id;
     public $observacion_red;
+    public $mejorandoAcciones = false;
+    public $mejorandoDetalle = false;
+
+    public $modalMasivo = false;
+    public $detalleMasivo = '';
+    public $tipoMasivo = ''; // Aquí guardaremos el ID de la via_ingreso_id o el nombre
+    public $selectedIds = []; // IDs de las estudiantes seleccionadas
+
+    public $nuevo_curso_id;
+    public $modalPromocion = false;
 
 protected $listeners = ['abrirModalRedes'];
 
@@ -64,7 +75,8 @@ protected $listeners = ['abrirModalRedes'];
     {
         return view('livewire.estudiante.estudiante-component', [
             // Enviamos la lista de redes a la vista
-            'redes' => \App\Models\RedesApoyo::all()
+            'redes' => \App\Models\RedesApoyo::all(),
+            'vias' => \App\Models\Viaingreso::all(),
         ]);
     }
 
@@ -381,4 +393,254 @@ protected $listeners = ['abrirModalRedes'];
         }
         $this->modalRedes = false;
     }
+
+    public function mejorarTextoIAdetalle()
+    {
+        if (empty($this->detalle_derivacion)) return;
+        $this->mejorandoDetalle = true;
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . env('GROQ_API_KEY'),
+                'Content-Type' => 'application/json',
+            ])->post('https://api.groq.com/openai/v1/chat/completions', [
+                'model' => 'llama-3.3-70b-versatile', // Modelo actualizado y vigente
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'Eres un corrector de estilo profesional para reportes escolares.'
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => 'Mejora la redacción y ortografía de este texto, manteniéndolo formal: ' . $this->detalle_derivacion
+                    ]
+                ],
+                'temperature' => 0.5,
+            ]);
+
+            if ($response->successful()) {
+                $this->detalle_derivacion = $response->json()['choices'][0]['message']['content'];
+                $this->dispatch('swal', ['icon' => 'success', 'title' => '¡Mejorado con éxito!']);
+            } else {
+                // Si Groq devuelve error, aquí veremos qué modelo sugiere usar
+                $errorDetail = $response->json()['error']['message'] ?? 'Error desconocido';
+                throw new \Exception($errorDetail);
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('swal', ['icon' => 'error', 'title' => 'Fallo la IA', 'text' => $e->getMessage()]);
+        }
+
+        $this->mejorandoDetalle = false;
+    }
+
+    public function mejorarTextoIAacciones()
+    {
+        if (empty($this->previos_derivacion)) return;
+        $this->mejorandoAcciones = true;
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . env('GROQ_API_KEY'),
+                'Content-Type' => 'application/json',
+            ])->post('https://api.groq.com/openai/v1/chat/completions', [
+                'model' => 'llama-3.3-70b-versatile', // Modelo actualizado y vigente
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'Eres un corrector de estilo profesional para reportes escolares.'
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => 'Mejora la redacción y ortografía de este texto, manteniéndolo formal: ' . $this->previos_derivacion
+                    ]
+                ],
+                'temperature' => 0.5,
+            ]);
+
+            if ($response->successful()) {
+                $this->previos_derivacion = $response->json()['choices'][0]['message']['content'];
+                $this->dispatch('swal', ['icon' => 'success', 'title' => '¡Mejorado con éxito!']);
+            } else {
+                // Si Groq devuelve error, aquí veremos qué modelo sugiere usar
+                $errorDetail = $response->json()['error']['message'] ?? 'Error desconocido';
+                throw new \Exception($errorDetail);
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('swal', ['icon' => 'error', 'title' => 'Fallo la IA', 'text' => $e->getMessage()]);
+        }
+
+        $this->mejorandoAcciones = false;
+    }
+
+
+    //Acciones Masivas
+    #[On('idSeleccion')]
+    public function idSeleccion($data)
+    {
+        // Obtenemos los IDs seleccionados de PowerGrid
+        $this->selectedIds = $this->getCheckboxState();
+
+        if (empty($this->selectedIds)) {
+            $this->dispatch('swal', [
+                'icon' => 'error',
+                'title' => 'No hay selección',
+                'text' => 'Selecciona al menos una estudiante en la tabla.'
+            ]);
+            return;
+        }
+
+        $this->modalMasivo = true;
+    }
+
+//    #[On('prepararMasivo.estudianteTable')]
+//     public function prepararMasivo()
+//     {
+//         // Usamos JS para obtener los IDs que PowerGrid tiene guardados en el navegador
+//         // y se los devolvemos a otra función de este mismo componente
+//         $this->js('
+//             const ids = window.pgBulkActions.get("estudianteTable");
+//             if (ids.length > 0) {
+//                 $wire.asignarIdsYAbrirModal(ids);
+//             } else {
+//                 alert("Por favor, selecciona al menos una estudiante");
+//             }
+//         ');
+//     }
+
+    // Esta función recibirá los IDs desde el JS de arriba
+    public function asignarIdsYAbrirModal($ids)
+    {
+        $this->selectedIds = $ids;
+        $this->modalMasivo = true;
+    }
+
+
+
+    public function guardarIntervencionMasiva()
+    {
+        $this->validate([
+            'detalleMasivo' => 'required|min:5',
+            'tipoMasivo' => 'required', // via_ingreso_id
+        ]);
+
+        try {
+            $batchId = (string) \Illuminate\Support\Str::uuid();
+
+            foreach ($this->selectedIds as $estudianteId) {
+                \App\Models\Intervencion::create([
+                    'estudiante_id'  => $estudianteId,
+                    'usuario_id'     => auth()->id(),
+                    'via_ingreso_id' => $this->tipoMasivo, // Convivencia o Psicosocial
+                    'descripcion'    => $this->detalleMasivo,
+                    'fecha'          => now()->format('Y-m-d'),
+                    'estado'         => 'Concluida', // Al ser masiva, suele ser una actividad terminada
+                    'batch_id'       => $batchId,
+                ]);
+            }
+
+            $this->modalMasivo = false;
+
+
+            $this->dispatch('swal', [
+                'icon' => 'success',
+                'title' => 'Proceso Exitoso',
+                'text' => 'Se registraron ' . count($this->selectedIds) . ' intervenciones.'
+            ]);
+
+            $this->reset(['detalleMasivo', 'selectedIds','tipoMasivo']);
+            //$this->clearCheckBox(); // Limpiar la tabla PowerGrid
+            //$this->dispatch('pg:clearAllSelections-estudianteTable');
+            // 2. Limpiamos la memoria de JS de PowerGrid
+            $this->js('window.pgBulkActions.clearAll("estudianteTable")');
+
+            // 3. Forzamos a la tabla a desmarcar visualmente los inputs (Evento nativo)
+            $this->dispatch('pg:clearAllSelections-estudianteTable');
+
+        } catch (\Exception $e) {
+            $this->dispatch('swal', ['icon' => 'error', 'title' => 'Error', 'text' => $e->getMessage()]);
+        }
+    }
+
+    #[On('checkboxChanged-estudianteTable')]
+    public function actualizarSeleccion($ids)
+    {
+        // Forzamos a que siempre sea un array, si llega null o vacío, será []
+        $this->selectedIds = is_array($ids) ? $ids : [];
+    }
+
+    #[On('prepararMasivo.estudianteTable')]
+    public function prepararMasivo()
+    {
+        $this->js('
+            const ids = window.pgBulkActions.get("estudianteTable");
+            if (ids.length > 0) {
+                $wire.set("selectedIds", ids);
+                $wire.set("modalMasivo", true);
+            } else {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Atención",
+                    text: "Debes seleccionar al menos una estudiante para realizar la Intervención Masiva",
+                    confirmButtonColor: "#4f46e5", // Color índigo para combinar con tu botón
+                });
+            }
+        ');
+    }
+
+// Listener para Cambio de Curso (Promoción)
+    #[On('abrirModalPromocion.estudianteTable')]
+    public function abrirModalPromocion()
+    {
+        $this->js('
+            const ids = window.pgBulkActions.get("estudianteTable");
+            if (ids.length > 0) {
+                $wire.set("selectedIds", ids); // Sincroniza los IDs manualmente
+                $wire.set("modalPromocion", true); // Abre el modal
+            } else {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Atención",
+                    text: "Debes seleccionar al menos una estudiante para realizar el cambio de curso",
+                    confirmButtonColor: "#4f46e5", // Color índigo para combinar con tu botón
+                });
+            }
+        ');
+    }
+
+    public function cambiarCursoMasivo()
+    {
+        $this->validate([
+            'nuevo_curso_id' => 'required'
+        ]);
+
+        try {
+            if (empty($this->selectedIds)) {
+                $this->dispatch('swal', ['icon' => 'error', 'title' => 'Error', 'text' => 'No hay estudiantes seleccionadas.']);
+                return;
+            }
+
+            // Actualización masiva en la base de datos
+            Estudiante::whereIn('id', $this->selectedIds)->update([
+                'curso_id' => $this->nuevo_curso_id
+            ]);
+
+            $this->modalPromocion = false;
+            $this->reset(['nuevo_curso_id', 'selectedIds']);
+
+            // Limpiamos los checks de la tabla
+            $this->js('window.pgBulkActions.clearAll("estudianteTable")');
+            $this->dispatch('pg:clearAllSelections-estudianteTable');
+            $this->dispatch('refreshTable'); // Para que la tabla muestre los nuevos cursos
+
+            $this->dispatch('swal', [
+                'icon' => 'success',
+                'title' => '¡Cambio Exitoso!',
+                'text' => 'Los cursos han sido actualizados correctamente.'
+            ]);
+
+        } catch (\Exception $e) {
+            $this->dispatch('swal', ['icon' => 'error', 'title' => 'Error', 'text' => $e->getMessage()]);
+        }
+    }
+
 }

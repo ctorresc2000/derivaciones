@@ -48,7 +48,7 @@ final class IntervencionesTable extends PowerGridComponent
         $user = auth()->user();
 
         return Intervencion::query()
-            ->with(['user', 'estudiante', 'detalles.falta', 'detalles.medida','detalles.tipo', 'detalles.motivo'])
+            ->with(['user', 'estudiante','estudiante.curso', 'detalles.falta', 'detalles.medida','detalles.tipo', 'detalles.motivo'])
             ->whereYear('created_at', $anioActivo)
             ->when($user->rol !== 'Administrador', function ($query) use ($user) {
                 // Si NO es Administrador, filtramos por su usuario_id
@@ -74,6 +74,7 @@ final class IntervencionesTable extends PowerGridComponent
                 // Usamos el operador nulo (?->) por si acaso el estudiante fue borrado
                 return $model->user?->name;
             })
+            ->add('curso_nombre', fn ($row) => e($row->estudiante->curso->curso ?? 'Sin Curso'))
             //->add('profesional_derivado_nombre', fn (Derivarestudiante $model) => $model->profesionalDerivado ? $model->profesionalDerivado->name : 'Sin asignar')
 
             ->add('via_ingreso', function (Intervencion $model) {
@@ -134,6 +135,11 @@ final class IntervencionesTable extends PowerGridComponent
             Column::make('Estudiante','estudiante_nombre', 'estudiante_id')
                 ->sortable()
                 ->searchable(),
+           Column::add()
+                ->title('Curso')
+                ->field('curso_nombre')
+                ->searchable()
+                ->sortable(),
             Column::make('Intervenido por','usuario_nombre', 'usuario_id')
                 ->sortable()
                 ->searchable(),

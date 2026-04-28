@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\NotificacionCopiaMail;
 use App\Traits\HasDocuments;
+use Illuminate\Support\Facades\Http;
 
 class IntervencionpsicosocialComponent extends Component
 {
@@ -38,6 +39,8 @@ class IntervencionpsicosocialComponent extends Component
     public $tipo_seleccionado_id = '';
     public $listaDatosAgregados = [];
     public $editando_index = null;
+
+    public $mejorando = false;
 
     public function render()
     {
@@ -185,6 +188,45 @@ class IntervencionpsicosocialComponent extends Component
         $nuevaVia = Viaingreso::create(['via_ingreso' => $nombre]);
         $this->viaingresos = Viaingreso::all(); // Recargar lista
         $this->via_ingreso_id = $nuevaVia->id;
+    }
+
+    public function mejorarTextoIA()
+    {
+        if (empty($this->descripcion_derivacion)) return;
+        $this->mejorando = true;
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . env('GROQ_API_KEY'),
+                'Content-Type' => 'application/json',
+            ])->post('https://api.groq.com/openai/v1/chat/completions', [
+                'model' => 'llama-3.3-70b-versatile', // Modelo actualizado y vigente
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'Eres un corrector de estilo profesional para reportes escolares.'
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => 'Mejora la redacción y ortografía de este texto, manteniéndolo formal: ' . $this->descripcion_derivacion
+                    ]
+                ],
+                'temperature' => 0.5,
+            ]);
+
+            if ($response->successful()) {
+                $this->descripcion_derivacion = $response->json()['choices'][0]['message']['content'];
+                $this->dispatch('swal', ['icon' => 'success', 'title' => '¡Mejorado con éxito!']);
+            } else {
+                // Si Groq devuelve error, aquí veremos qué modelo sugiere usar
+                $errorDetail = $response->json()['error']['message'] ?? 'Error desconocido';
+                throw new \Exception($errorDetail);
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('swal', ['icon' => 'error', 'title' => 'Fallo la IA', 'text' => $e->getMessage()]);
+        }
+
+        $this->mejorando = false;
     }
 
 // Asegúrate de que agregarDato use los nombres de llaves correctos para la tabla

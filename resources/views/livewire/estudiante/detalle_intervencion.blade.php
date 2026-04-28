@@ -74,7 +74,7 @@
             <i class="fa-solid fa-comment-dots mr-1"></i> Descripción o Relato
         </span>
         <p class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed">
-            {{ data_get($detalle, 'detalle') ?: 'No se ingresaron observaciones adicionales.' }}
+            {{ $row->descripcion ?: 'No se ingresaron observaciones adicionales.' }}
         </p>
     </div>
 
