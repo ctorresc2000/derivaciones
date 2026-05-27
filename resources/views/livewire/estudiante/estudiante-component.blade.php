@@ -4,19 +4,18 @@
     <hr class="mb-3">
 
     <div class="flex justify-end px-6">
-        {{-- <div class="flex gap-4 mb-4">
-            @if(count($selectedIds) > 0)
-                <flux:button wire:click="prepararMasivo" color="amber">Intervención</flux:button>
-                <flux:button wire:click="abrirModalPromocion" color="indigo">Cambiar Curso</flux:button>
-            @endif
-        </div> --}}
-        <flux:button wire:click="$set('abrirModal', true)">
+        <flux:button wire:click="$set('abrirModal', true)" variant="primary" color="green">
             <i class="fa-solid fa-circle-plus"></i><span class="ml-3">Nuevo Estudiante</span>
         </flux:button>
+
         @if (Auth::user()->rol==="Administrador")
-            <flux:button wire:click="$set('excelModal', true)" class="ml-3" variant="primary" color="blue">
-                <i class="fa-solid fa-upload"></i><span class="ml-3">Subir Excel</span>
-            </flux:button>
+        <flux:button wire:click="$set('excelModal', true)" class="ml-3" variant="primary" color="blue">
+            <i class="fa-solid fa-upload"></i><span class="ml-3">Subir Excel</span>
+        </flux:button>
+
+        <flux:button wire:click="abrirModalPromocionCurso" class="ml-3" variant="primary" color="orange">
+            <i class="fa-solid fa-calendar-plus text-white"></i><span class="ml-3 text-white">Nuevo Año Escolar</span>
+        </flux:button>
         @endif
 
 
@@ -554,5 +553,90 @@
             </div>
         </div>
     </flux:modal>
+
+<flux:modal wire:model="modalPromocionCurso" class="w-full md:w-[1000px] h-[750px]">
+    <div class="flex flex-col h-full">
+        <flux:heading size="xl" class="mb-4">Promoción Estudiantes {{ $anioParaPromocion }}</flux:heading>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <flux:select label="Curso Origen ({{ $anioParaPromocion - 1 }})" wire:model.live="curso_origen">
+                <option value="">Seleccione origen...</option>
+                @foreach($cursos_lista as $c)
+                    <option value="{{ $c->id }}">{{ $c->curso }}</option>
+                @endforeach
+            </flux:select>
+
+            <flux:select label="Curso Destino ({{ $anioParaPromocion }})" wire:model="curso_destino">
+                <option value="">Seleccione destino...</option>
+                @foreach($cursos_lista as $c)
+                    <option value="{{ $c->id }}">{{ $c->curso }}</option>
+                @endforeach
+            </flux:select>
+
+            <flux:select label="Condición" wire:model="condicion">
+                <option value="">Seleccione condición...</option>
+                <option value="Promovida">Promovida</option>
+                <option value="Reprobada">Reprobada</option>
+                <option value="Egresada">Egresada</option>
+                <option value="Regular">Regular (Traslado intermedio)</option>
+            </flux:select>
+        </div>
+
+        <div class="flex-grow overflow-auto border rounded-lg">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50 border-b sticky top-0">
+                    <tr>
+                        <th class="p-3 w-12 text-center">Sel.</th>
+                        <th class="p-3 text-sm font-semibold text-slate-600">ID</th>
+                        <th class="p-3 text-sm font-semibold text-slate-600">Estudiante</th>
+                        <th class="p-3 text-sm font-semibold text-slate-600">Estado Actual</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y bg-white">
+                    {{-- Usamos la propiedad computada del componente --}}
+                    @forelse($this->estudiantes_pendientes as $est)
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-3 text-center">
+                            <input type="checkbox" wire:model="estudiantes_seleccionadas" value="{{ $est->id }}" class="rounded border-slate-300 text-orange-600">
+                        </td>
+                        <td class="p-3 text-sm text-slate-500">{{ $est->id }}</td>
+                        <td class="p-3 text-sm font-medium text-slate-700">
+                            {{ $est->nombre }} {{ $est->apellido }}
+                        </td>
+                        <td class="p-3">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
+                                {{ $est->estado }}
+                            </span>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="4" class="p-10 text-center text-slate-400 italic">
+                            @if(!$curso_origen)
+                                Seleccione un curso de origen para listar estudiantes.
+                            @else
+                                No hay estudiantes pendientes de procesar en este curso para el año {{ $anioParaPromocion }}.
+                            @endif
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4 flex justify-between items-center bg-zinc-50 p-4 rounded-b-lg border-t">
+            <div class="text-sm font-medium text-slate-600">
+                Seleccionadas: <strong class="text-orange-600">{{ count($estudiantes_seleccionadas) }}</strong>
+            </div>
+            <div class="flex gap-2">
+                <flux:button variant="ghost" wire:click="cerrarModalPromocionCurso">Cancelar</flux:button>
+
+                <flux:button variant="primary" color="orange" wire:click="promocionarSeleccionadas" class="!text-white">
+                    Aplicar Cambio y Guardar Historial
+                </flux:button>
+            </div>
+        </div>
+    </div>
+</flux:modal>
 
 </div>

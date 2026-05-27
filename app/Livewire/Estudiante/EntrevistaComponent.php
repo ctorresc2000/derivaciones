@@ -25,6 +25,7 @@ class EntrevistaComponent extends Component
     public $codigo_ingresado;
     public $otp_verificado = false;
     public $mostrar_campo_codigo = false;
+    public $modalFirma = false;
 
     public function mount()
     {
@@ -197,5 +198,11 @@ class EntrevistaComponent extends Component
         }
 
         $this->mejorando = false;
+    }
+
+    public function abrirModalFirma()
+    {
+        $this->modalFirma = true;
+        $this->dispatch('modal-firma-abierto');
     }
 }

@@ -274,5 +274,26 @@
             });
         </script>
 
+        <script>
+            window.addEventListener('swal-confirm', event => {
+                Swal.fire({
+                    title: event.detail[0].title,
+                    text: event.detail[0].text,
+                    icon: event.detail[0].icon,
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: event.detail[0].confirmButtonText,
+                    cancelButtonText: event.detail[0].cancelButtonText,
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Llamamos al método de Livewire que pasamos en 'method'
+                        Livewire.dispatch(event.detail[0].method);
+                    }
+                });
+            });
+        </script>
+
     </body>
 </html>

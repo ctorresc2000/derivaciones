@@ -138,6 +138,14 @@
                     <i class="fa-solid fa-check-double mr-2"></i> Correo Validado
                 </div>
             @endif
+
+{{-- Botón para abrir el modal de firma --}}
+    {{-- <div class="mt-4 ml-4">
+        <flux:button icon="pencil-square" wire:click="$set('modalFirma', true)" primary variant="filled" color="indigo">
+            Abrir Panel de Firma (Pantalla Completa)
+        </flux:button>
+    </div> --}}
+
         </div>
 
         @if($mostrar_campo_codigo)
@@ -159,7 +167,7 @@
     {{-- AREA DE FIRMA --}}
     <div class="space-y-6">
     {{-- AREA DE FIRMA --}}
-        <div class="border rounded-lg p-4 bg-white" wire:ignore> {{-- wire:ignore es vital para que Livewire no borre el dibujo --}}
+        {{-- <div class="border rounded-lg p-4 bg-white" wire:ignore>
             <label class="block text-sm font-bold mb-2">Firma del Entrevistado</label>
             <div class="w-full h-32 touch-none bg-zinc-50 border border-dashed border-slate-200 rounded-md">
                 <canvas id="signature-pad" class="w-full h-full"></canvas>
@@ -167,7 +175,7 @@
             <div class="mt-2 flex gap-2">
                 <flux:button size="sm" type="button" onclick="signaturePad.clear()">Borrar Firma</flux:button>
             </div>
-        </div>
+        </div> --}}
 
         {{-- Botón de Guardar --}}
         <flux:button variant="primary" wire:click="procesarGuardado">
@@ -175,48 +183,102 @@
         </flux:button>
     </div>
 
+   {{-- Modal de Firma Adaptable --}}
+    <flux:modal wire:model="modalFirma" class="w-full h-full md:w-[800px] md:h-[600px] p-0">
+        <div class="flex flex-col h-full bg-white dark:bg-zinc-900 shadow-2xl">
+            <div class="p-4 border-b flex justify-between items-center bg-slate-50 dark:bg-zinc-800">
+                <flux:heading size="lg">Panel de Firma Digital</flux:heading>
+                <flux:button icon="x-mark" variant="ghost" wire:click="$set('modalFirma', false)" />
+            </div>
+
+            <div class="flex-grow p-4 bg-slate-100 dark:bg-zinc-950 flex items-center justify-center overflow-hidden" id="contenedor-canvas">
+                <canvas id="canvas-firma-full"
+                    class="w-full h-full border-2 border-dashed border-slate-300 rounded-lg bg-white touch-none shadow-inner"
+                    style="cursor: url('https://www.gstatic.com/images/icons/material/system/2x/create_black_24dp.png'), crosshair;">
+                </canvas>
+            </div>
+
+            <div class="p-4 border-t flex gap-4 bg-white dark:bg-zinc-800">
+                <flux:button variant="ghost" class="flex-1" onclick="limpiarFirma()">
+                    <i class="fa-solid fa-eraser mr-2"></i> Limpiar
+                </flux:button>
+                <flux:button variant="primary" color="green" class="flex-1" onclick="guardarFirma()">
+                    <i class="fa-solid fa-check mr-2"></i> Confirmar Firma
+                </flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
 </div>
 
 
     {{-- Scripts de Firma --}}
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
 <script>
-    let signaturePad;
+   let signaturePad;
 
-    function initSignature() {
-        const canvas = document.getElementById('signature-pad');
-        if (!canvas) return;
-
-        // Esto ajusta el dibujo a la resolución real de la pantalla (Retina/4K)
-        const ratio = Math.max(window.devicePixelRatio || 1, 1);
-
-        // USAR offsetWidth para capturar el tamaño del DIV contenedor
-        canvas.width = canvas.offsetWidth * ratio;
-        canvas.height = canvas.offsetHeight * ratio;
-        canvas.getContext("2d").scale(ratio, ratio);
+    document.addEventListener('livewire:initialized', () => {
+        const canvas = document.getElementById('canvas-firma-full');
 
         signaturePad = new SignaturePad(canvas, {
-            backgroundColor: 'rgba(255, 255, 255, 0)',
-            penColor: 'rgb(0, 0, 0)'
+            backgroundColor: 'rgb(255, 255, 255)',
+            penColor: 'rgb(0, 0, 0)',
+            velocityFilterWeight: 0.7 // Hace que el trazo en PC sea más suave con el mouse
         });
+
+        function resizeCanvas() {
+            const canvas = document.getElementById('canvas-firma-full');
+
+            // 1. Obtener el tamaño visual real que le da el CSS/Modal
+            const rect = canvas.getBoundingClientRect();
+
+            // 2. Manejar la densidad de píxeles (importante en tablets/celulares)
+            const ratio = window.devicePixelRatio || 1;
+
+            // 3. Guardar lo que ya se dibujó (para no perderlo al redimensionar)
+            const data = signaturePad.toData();
+
+            // 4. EL SECRETO: Ajustar el ancho interno al ancho visual * ratio
+            canvas.width = rect.width * ratio;
+            canvas.height = rect.height * ratio;
+
+            // 5. Escalar el contexto para que el dibujo no se vea pequeño
+            canvas.getContext("2d").scale(ratio, ratio);
+
+            // 6. Limpiar y restaurar
+            signaturePad.clear();
+            signaturePad.fromData(data);
+        }
+        // Se activa cuando el modal se abre
+        Livewire.on('modal-firma-abierto', () => {
+            setTimeout(resizeCanvas, 300); // Espera a que Flux termine la animación
+        });
+
+        // Se activa si el usuario cambia el tamaño de la ventana (PC) o gira el móvil
+        window.onresize = resizeCanvas;
+    });
+
+    function limpiarFirma() {
+        signaturePad.clear();
     }
 
-    // Inicializar al cargar
-    document.addEventListener('DOMContentLoaded', initSignature);
+    function guardarFirma() {
+        if (signaturePad.isEmpty()) {
+            Swal.fire('Atención', 'Por favor, realice una firma primero.', 'warning');
+            return;
+        }
 
-    // Escuchar la orden de Livewire
-    window.addEventListener('solicitar-firma', event => {
-        //if (signaturePad.isEmpty()) {
-        //   alert("Debe firmar para continuar");
-        //    return;
-        //}
+        const dataUrl = signaturePad.toDataURL();
+        @this.set('firma_digital', dataUrl);
+        @this.set('modalFirma', false);
 
-        // Obtenemos la imagen original
-        const dataURL = signaturePad.toDataURL();
-
-        // ENVIAR AL COMPONENTE
-        @this.recibirFirmaYGuardar(dataURL);
-    });
+        Swal.fire({
+            icon: 'success',
+            title: 'Firma guardada',
+            timer: 1000,
+            showConfirmButton: false
+        });
+    }
 
     //Dictdo por voz
 
