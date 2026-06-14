@@ -22,6 +22,8 @@ class Estudiante extends Model
         'curso_id',
         'observaciones',
         'estado',
+        'matricula',
+        'anio',
     ];
 
     public function curso()
@@ -44,5 +46,10 @@ class Estudiante extends Model
         return $this->belongsToMany(RedesApoyo::class, 'estudiante_red_apoyo', 'estudiante_id', 'red_apoyo_id')
                     ->withPivot('observacion', 'activo')
                     ->withTimestamps();
+    }
+
+    public function apoderados()
+    {
+        return $this->belongsToMany(Apoderado::class);
     }
 }

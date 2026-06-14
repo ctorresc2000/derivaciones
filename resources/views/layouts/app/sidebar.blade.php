@@ -56,6 +56,11 @@
                             <span class="ml-3">Tipo de Profesiones</span>
                         </flux:sidebar.item>
 
+                        <flux:sidebar.item :href="route('apoderados')" :current="request()->routeIs('apoderados')" wire:navigate>
+                            <i class="fa-solid fa-restroom"></i>
+                            <span class="ml-3">Apoderados</span>
+                        </flux:sidebar.item>
+
                         <flux:sidebar.item :href="route('configuracion')" :current="request()->routeIs('configuracion')" wire:navigate>
                             <i class="fa-solid fa-gear"></i>
                             <span class="ml-3">Configuración</span>
@@ -64,7 +69,7 @@
                         <flux:sidebar.item icon="magnifying-glass" class="cursor-pointer" x-on:click="$dispatch('abrir-modal-mc')">
                             Consultar Manual (F6)
                         </flux:sidebar.item>
-                        <flux:sidebar.item :href="route('entrevistas')" :current="request()->routeIs('entrevistas')">
+                        <flux:sidebar.item :href="route('entrevistas')" :current="request()->routeIs('entrevistas')" wire:navigate>
                             <i class="fa-solid fa-book"></i>
                             <span class="ml-3">Entrevistas</span>
                         </flux:sidebar.item>

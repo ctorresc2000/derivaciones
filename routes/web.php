@@ -1,27 +1,32 @@
 <?php
 namespace App\Livewire\Estudiante; // <-- Tiene que tener "\Estudiante" al final
+use App\Http\Controllers\EntrevistaExportController;
+use App\Livewire\Apoderado\ApoderadoComponent;
+use App\Livewire\Apoderado\PortalApoderadoComponent;
 use App\Livewire\Configuracion\ConfiguracionComponent;
 use App\Livewire\Cursos\CursosComponent;
 use App\Livewire\Estudiante\DerivacionComponent;
 use App\Livewire\Estudiante\EstudianteComponent;
+use App\Livewire\Estudiante\HistorialComponent;
 use App\Livewire\Estudiante\IntervencionpsicosocialComponent;
 use App\Livewire\Ingresos\FaltasComponent;
 use App\Livewire\Ingresos\IntervencionesComponent;
 use App\Livewire\Ingresos\MedidasComponent;
 use App\Livewire\Ingresos\MotivointervencionComponent;
+use App\Livewire\Ingresos\RedesComponent;
 use App\Livewire\Ingresos\TipointervencionComponent;
 use App\Livewire\Ingresos\ViaingresoComponent;
 use App\Livewire\User\ProfesionalesComponent;
 use App\Livewire\User\TipoprofesionalComponent;
 use App\Livewire\User\UserComponent;
-use App\Livewire\Estudiante\HistorialComponent;
-use App\Livewire\Ingresos\RedesComponent;
-use Illuminate\Support\Facades\Route;
 use App\Models\Estudiante;
-use Illuminate\Support\Facades\Artisan;
-use App\Http\Controllers\EntrevistaExportController;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Container\Attributes\Auth;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Route;
+
+
+Route::get('/apoderado', PortalApoderadoComponent::class)->name('apoderado.index');
 
 Route::redirect('/', '/login')->name('home');
 
@@ -47,6 +52,7 @@ Route::get('/intervenciones', IntervencionesComponent::class)->name('intervencio
 Route::get('/redes', RedesComponent::class)->name('redes')->middleware('rol:Administrador');
 Route::get('/entrevistas', EntrevistaComponent::class)->name('entrevistas')->middleware('rol:Administrador,Usuario');
 Route::get('/cardex', CardexComponent::class)->name('cardex')->middleware('rol:Administrador,Usuario');
+Route::get('/apoderados', ApoderadoComponent::class)->name('apoderados')->middleware('rol:Administrador,Usuario');
 
 
 Route::get('/instalar', function () {

@@ -24,6 +24,8 @@ return new class extends Migration
             $table->string('email')->unique()->nullable();
             $table->text('observaciones')->nullable();
             $table->string('estado')->default('Activo');
+            $table->enum('matricula',['SI','NO'])->default('NO');
+            $table->int('anio')->nullable();
             $table->timestamps();
         });
     }

@@ -38,11 +38,12 @@ class EntrevistaComponent extends Component
         $this->validate(['email_otp' => 'required|email']);
 
         $codigo = rand(100000, 999999);
-        Cache::put('otp_' . $this->email_otp, $codigo, now()->addMinutes(15));
+        Cache::put('otp_' . $this->email_otp, $codigo, now()->addMinutes(30));
 
         // ENVÍO REAL
         try {
-            Mail::to($this->email_otp)->send(new CodigoFirmaMail($codigo));
+            //Mail::to($this->email_otp)->send(new CodigoFirmaMail($codigo));
+            Mail::to($this->email_otp)->send(new CodigoFirmaMail($codigo, $this->detalle));
 
             $this->mostrar_campo_codigo = true;
             $this->dispatch('swal', [

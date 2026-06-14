@@ -40,7 +40,7 @@
 
             </div>
 
-             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+             <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-2 gap-3">
 
                 <div>
                     <flux:input
@@ -64,6 +64,14 @@
                         placeholder="logo de la Institución educativa"
                     />
                 </div>
+                {{-- <div>
+
+                    <flux:field variant="inline" size="lg">
+                        <flux:label>Autorizados a Cambiar Apoderados</flux:label>
+                        <flux:switch wire:model.live="notifications" />
+                        <flux:error name="notifications" />
+                    </flux:field>
+                </div> --}}
             </div>
 
 

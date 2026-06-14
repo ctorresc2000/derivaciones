@@ -34,6 +34,8 @@
                 Se aplicará a <b>{{ count($selectedIds) }}</b> estudiantes seleccionadas.
             </flux:text>
 
+            <flux:input label="Fecha: " wire:model="fechaintervencionMasiva" type="date"/>
+
             <flux:select label="Vía de Ingreso / Área" wire:model="tipoMasivo">
                 <flux:select.option value="">Seleccione una opción...</flux:select.option>
                 @foreach($vias as $via)
@@ -306,9 +308,11 @@
                             Fecha Derivación
                         </flux:text>
 
-                        <flux:text class="text-lg font-medium text-slate-800 dark:text-white mt-1">
+                        <strong><flux:input wire:model="fechaDerivacion" type="date"/></strong>
+
+                        {{-- <flux:text class="text-lg font-medium text-slate-800 dark:text-white mt-1">
                             {{ now()->format('d/m/Y') }}
-                        </flux:text>
+                        </flux:text> --}}
                     </div>
 
                     <div class="flex flex-col mb-4">
@@ -524,6 +528,65 @@
         </div>
     </flux:modal>
 
+    <flux:modal wire:model="modalApoderados" class="w-full max-w-4xl">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="xl">Apoderados Asignados</flux:heading>
+                <flux:subheading>Estudiante: {{ $estudianteSeleccionadoRedes?->nombre }} {{ $estudianteSeleccionadoRedes?->apellido }}</flux:subheading>
+            </div>
+
+            {{-- LISTADO ACTUAL --}}
+            <div class="space-y-2 ">
+                @if($estudianteSeleccionadoRedes && $estudianteSeleccionadoRedes->apoderados->count() > 0)
+                    @foreach($estudianteSeleccionadoRedes->apoderados as $apod)
+                        <div class="flex justify-between items-center p-3 bg-slate-50 border rounded-lg">
+                            <div class="grid justify-between  grid-cols-1 md:grid-cols-2 gap-6">
+                                <div><p class="text-sm font-bold"><strong>Nombre :</strong>{{ $apod->apoderado }}</p></div>
+                                <div><p class="text-sm font-bold"><strong>Teléfono :</strong>{{ $apod->telefono }}</p></div>
+                                <div><p class="text-sm font-bold"><strong>Email : </strong>{{ $apod->correo }}</p></div>
+                                <div><p class="text-sm font-bold"><strong>Dirección :</strong>{{ $apod->direccion }}</p></div>
+                                <div> <p class="text-sm font-bold">
+                                    <strong>Estado : </strong>
+                                    <span class="{{ $apod->estado == 'Activo' ? 'text-green-600' : 'text-red-600' }}">
+                                        {{ $apod->estado }}
+                                    </span>
+                                </p></div>
+                                <div><p class="text-sm font-bold"><strong>Carnet :</strong>
+                                    <a class="text-xs text-slate-500" href="{{asset('storage/'. $apod->carnet) }}" target="_blank">Ver Carnet</a>
+                                </p></div>
+
+
+
+
+
+
+                            </div>
+                            {{-- <flux:button variant="ghost" icon="trash" wire:click="desvincularRed({{ $red->id }})" /> --}}
+                        </div>
+                    @endforeach
+                @else
+                    <p class="text-sm italic text-slate-400">No tiene Apoderados asignados.</p>
+                @endif
+            </div>
+
+            <hr>
+
+            {{-- FORMULARIO DE ASIGNACIÓN --}}
+            <div class="grid gap-4">
+                {{-- <flux:select label="Nueva Red" wire:model="red_id">
+                    <flux:select.option value="">Seleccione un Centro</flux:select.option>
+                    @foreach($redes as $red)
+                        <flux:select.option value="{{ $red->id }}">{{ $red->nombre }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+
+                <flux:input label="Contacto: (Nombre, Teléfono, Correo Electrónico)" wire:model="observacion_red" placeholder="Ej. Juan Pérez, +56958745269, correo@mail.com" />
+
+                <flux:button variant="primary" wire:click="asignarRed">Vincular Estudiante</flux:button>--}}
+            </div>
+        </div>
+    </flux:modal>
+
     {{-- Botón para abrir el modal de promoción (puedes ponerlo al lado del otro botón masivo) --}}
     @if(count($selectedIds) > 0)
         <flux:button wire:click="$set('modalPromocion', true)" variant="filled" color="indigo" class="mr-3">
@@ -558,48 +621,51 @@
     <div class="flex flex-col h-full">
         <flux:heading size="xl" class="mb-4">Promoción Estudiantes {{ $anioParaPromocion }}</flux:heading>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <flux:select label="Curso Origen ({{ $anioParaPromocion - 1 }})" wire:model.live="curso_origen">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <flux:select label="Curso Origen ({{ $anioParaPromocion }})" wire:model.live="curso_origen">
                 <option value="">Seleccione origen...</option>
-                @foreach($cursos_lista as $c)
+                @foreach($cursos as $c)
                     <option value="{{ $c->id }}">{{ $c->curso }}</option>
                 @endforeach
             </flux:select>
 
-            <flux:select label="Curso Destino ({{ $anioParaPromocion }})" wire:model="curso_destino">
+            <flux:select label="Curso Destino ({{ $anioParaPromocion + 1 }})" wire:model="curso_destino">
                 <option value="">Seleccione destino...</option>
-                @foreach($cursos_lista as $c)
+                @foreach($cursos as $c)
                     <option value="{{ $c->id }}">{{ $c->curso }}</option>
                 @endforeach
             </flux:select>
 
-            <flux:select label="Condición" wire:model="condicion">
+            {{-- <flux:select label="Condición" wire:model="condicion">
                 <option value="">Seleccione condición...</option>
                 <option value="Promovida">Promovida</option>
                 <option value="Reprobada">Reprobada</option>
                 <option value="Egresada">Egresada</option>
                 <option value="Regular">Regular (Traslado intermedio)</option>
-            </flux:select>
+            </flux:select> --}}
         </div>
 
         <div class="flex-grow overflow-auto border rounded-lg">
             <table class="w-full text-left border-collapse">
                 <thead class="bg-slate-50 border-b sticky top-0">
                     <tr>
-                        <th class="p-3 w-12 text-center">Sel.</th>
-                        <th class="p-3 text-sm font-semibold text-slate-600">ID</th>
+                        <th class="p-3 w-12 text-center">
+                            <input type="checkbox"
+                                wire:model.live="seleccionarTodo"
+                                class="rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer">
+                        </th>
+                        <th class="p-3 text-sm hidden font-semibold text-slate-600">ID</th>
                         <th class="p-3 text-sm font-semibold text-slate-600">Estudiante</th>
                         <th class="p-3 text-sm font-semibold text-slate-600">Estado Actual</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y bg-white">
-                    {{-- Usamos la propiedad computada del componente --}}
                     @forelse($this->estudiantes_pendientes as $est)
                     <tr class="hover:bg-slate-50 transition-colors">
                         <td class="p-3 text-center">
-                            <input type="checkbox" wire:model="estudiantes_seleccionadas" value="{{ $est->id }}" class="rounded border-slate-300 text-orange-600">
+                            <input type="checkbox" wire:model.live="estudiantes_seleccionadas" value="{{ $est->id }}" class="rounded border-slate-300 text-orange-600">
                         </td>
-                        <td class="p-3 text-sm text-slate-500">{{ $est->id }}</td>
+                        <td class="p-3 hidden text-sm text-slate-500">{{ $est->id }}</td>
                         <td class="p-3 text-sm font-medium text-slate-700">
                             {{ $est->nombre }} {{ $est->apellido }}
                         </td>
@@ -623,10 +689,11 @@
                 </tbody>
             </table>
         </div>
+        {{-- @dump($estudiantes_seleccionadas) --}}
 
         <div class="mt-4 flex justify-between items-center bg-zinc-50 p-4 rounded-b-lg border-t">
             <div class="text-sm font-medium text-slate-600">
-                Seleccionadas: <strong class="text-orange-600">{{ count($estudiantes_seleccionadas) }}</strong>
+                {{-- Seleccionadas: <strong class="text-orange-600">{{ count($estudiantes_seleccionadas) }}</strong> --}}
             </div>
             <div class="flex gap-2">
                 <flux:button variant="ghost" wire:click="cerrarModalPromocionCurso">Cancelar</flux:button>

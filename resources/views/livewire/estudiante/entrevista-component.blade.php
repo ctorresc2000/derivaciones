@@ -47,7 +47,7 @@
             <flux:checkbox label="¿Es entrevista a apoderado?" wire:model.live="es_apoderado" />
 
             @if($es_apoderado)
-                <flux:input label="Nombre del Apoderado" wire:model="nombre_apoderado" />
+                <flux:input label="Nombre y Rut del Apoderado separado por guión" wire:model="nombre_apoderado" placeholder="Ej. Juanito Pérez - 12345678-9"/>
                 @error('nombre_apoderado')
                     <span class="text-red-500 text-xs font-bold">{{ $message }}</span>
                 @enderror
@@ -62,6 +62,7 @@
             <flux:select.option value="Conductual">Conductual</flux:select.option>
             <flux:select.option value="Asistencia">Asistencia</flux:select.option>
             <flux:select.option value="Atrasos">Atrasos</flux:select.option>
+            <flux:select.option value="Otro">Otro...</flux:select.option>
             {{-- ... resto de opciones --}}
         </flux:select>
     </div>
@@ -139,13 +140,13 @@
                 </div>
             @endif
 
-{{-- Botón para abrir el modal de firma --}}
-    {{-- <div class="mt-4 ml-4">
+{{-- Botón para abrir el modal de firma
+    <div class="mt-4 ml-4">
         <flux:button icon="pencil-square" wire:click="$set('modalFirma', true)" primary variant="filled" color="indigo">
             Abrir Panel de Firma (Pantalla Completa)
         </flux:button>
-    </div> --}}
-
+    </div>
+--}}
         </div>
 
         @if($mostrar_campo_codigo)
@@ -183,31 +184,36 @@
         </flux:button>
     </div>
 
-   {{-- Modal de Firma Adaptable --}}
+   {{-- Modal de Firma Adaptable (Controlado por Alpine)
     <flux:modal wire:model="modalFirma" class="w-full h-full md:w-[800px] md:h-[600px] p-0">
-        <div class="flex flex-col h-full bg-white dark:bg-zinc-900 shadow-2xl">
+
+        <div x-data="firmaDigital()" class="flex flex-col h-full bg-white dark:bg-zinc-900 shadow-2xl">
+
             <div class="p-4 border-b flex justify-between items-center bg-slate-50 dark:bg-zinc-800">
                 <flux:heading size="lg">Panel de Firma Digital</flux:heading>
                 <flux:button icon="x-mark" variant="ghost" wire:click="$set('modalFirma', false)" />
             </div>
 
-            <div class="flex-grow p-4 bg-slate-100 dark:bg-zinc-950 flex items-center justify-center overflow-hidden" id="contenedor-canvas">
-                <canvas id="canvas-firma-full"
-                    class="w-full h-full border-2 border-dashed border-slate-300 rounded-lg bg-white touch-none shadow-inner"
-                    style="cursor: url('https://www.gstatic.com/images/icons/material/system/2x/create_black_24dp.png'), crosshair;">
-                </canvas>
+            <div class="flex-grow p-4 bg-slate-100 dark:bg-zinc-950 overflow-hidden flex flex-col">
+                <div x-ref="wrapper" class="flex-grow w-full bg-white border-2 border-dashed border-slate-300 rounded-lg shadow-inner overflow-hidden relative">
+                    <canvas x-ref="canvas"
+                        class="absolute top-0 left-0 touch-none"
+                        style="cursor: crosshair;">
+                    </canvas>
+                </div>
             </div>
 
             <div class="p-4 border-t flex gap-4 bg-white dark:bg-zinc-800">
-                <flux:button variant="ghost" class="flex-1" onclick="limpiarFirma()">
+                <flux:button variant="ghost" class="flex-1" @click="limpiarFirma()">
                     <i class="fa-solid fa-eraser mr-2"></i> Limpiar
                 </flux:button>
-                <flux:button variant="primary" color="green" class="flex-1" onclick="guardarFirma()">
+                <flux:button variant="primary" color="green" class="flex-1" @click="guardarFirma()">
                     <i class="fa-solid fa-check mr-2"></i> Confirmar Firma
                 </flux:button>
             </div>
+
         </div>
-    </flux:modal>
+    </flux:modal>--}}
 
 </div>
 
@@ -215,70 +221,89 @@
     {{-- Scripts de Firma --}}
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
 <script>
-   let signaturePad;
+   {{-- Script de Signature Pad --}}
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
 
-    document.addEventListener('livewire:initialized', () => {
-        const canvas = document.getElementById('canvas-firma-full');
+    {{-- Lógica de Alpine.js --}}
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('firmaDigital', () => ({
+                pad: null,
+                resizeObserver: null,
 
-        signaturePad = new SignaturePad(canvas, {
-            backgroundColor: 'rgb(255, 255, 255)',
-            penColor: 'rgb(0, 0, 0)',
-            velocityFilterWeight: 0.7 // Hace que el trazo en PC sea más suave con el mouse
+                init() {
+                    this.pad = new SignaturePad(this.$refs.canvas, {
+                        backgroundColor: 'rgb(255, 255, 255)',
+                        penColor: 'rgb(0, 0, 0)',
+                        velocityFilterWeight: 0.7
+                    });
+
+                    // El ResizeObserver mide los píxeles REALES del contenedor, ignorando animaciones
+                    this.resizeObserver = new ResizeObserver((entries) => {
+                        for (let entry of entries) {
+                            const width = entry.contentRect.width;
+                            const height = entry.contentRect.height;
+
+                            // Si el modal está visible y tiene tamaño, ajustamos
+                            if (width > 0 && height > 0) {
+                                this.ajustarCanvas(width, height);
+                            }
+                        }
+                    });
+
+                    // Observamos el DIV padre, NO el canvas
+                    this.resizeObserver.observe(this.$refs.wrapper);
+
+                    // Limpiamos la firma si el modal se cierra
+                    this.$watch('$wire.modalFirma', (abierto) => {
+                        if (!abierto) this.pad.clear();
+                    });
+                },
+
+                ajustarCanvas(width, height) {
+                    const canvas = this.$refs.canvas;
+                    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                    const data = this.pad.toData(); // Guardar trazos previos
+
+                    // 1. EL SECTRETO PARA EVITAR DESFASES: Forzamos el CSS en píxeles duros
+                    canvas.style.width = width + 'px';
+                    canvas.style.height = height + 'px';
+
+                    // 2. Ajustamos la resolución interna para pantallas HD (Móviles/Retina)
+                    canvas.width = width * ratio;
+                    canvas.height = height * ratio;
+
+                    // 3. Escalamos el contexto
+                    canvas.getContext("2d").scale(ratio, ratio);
+
+                    this.pad.clear();
+                    if (data && data.length > 0) {
+                        this.pad.fromData(data); // Restauramos trazos
+                    }
+                },
+
+                limpiarFirma() {
+                    this.pad.clear();
+                },
+
+                guardarFirma() {
+                    if (this.pad.isEmpty()) {
+                        Swal.fire('Atención', 'Por favor, realice una firma primero.', 'warning');
+                        return;
+                    }
+
+                    this.$wire.set('firma_digital', this.pad.toDataURL());
+                    this.$wire.set('modalFirma', false);
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Firma guardada',
+                        timer: 1000,
+                        showConfirmButton: false
+                    });
+                }
+            }));
         });
-
-        function resizeCanvas() {
-            const canvas = document.getElementById('canvas-firma-full');
-
-            // 1. Obtener el tamaño visual real que le da el CSS/Modal
-            const rect = canvas.getBoundingClientRect();
-
-            // 2. Manejar la densidad de píxeles (importante en tablets/celulares)
-            const ratio = window.devicePixelRatio || 1;
-
-            // 3. Guardar lo que ya se dibujó (para no perderlo al redimensionar)
-            const data = signaturePad.toData();
-
-            // 4. EL SECRETO: Ajustar el ancho interno al ancho visual * ratio
-            canvas.width = rect.width * ratio;
-            canvas.height = rect.height * ratio;
-
-            // 5. Escalar el contexto para que el dibujo no se vea pequeño
-            canvas.getContext("2d").scale(ratio, ratio);
-
-            // 6. Limpiar y restaurar
-            signaturePad.clear();
-            signaturePad.fromData(data);
-        }
-        // Se activa cuando el modal se abre
-        Livewire.on('modal-firma-abierto', () => {
-            setTimeout(resizeCanvas, 300); // Espera a que Flux termine la animación
-        });
-
-        // Se activa si el usuario cambia el tamaño de la ventana (PC) o gira el móvil
-        window.onresize = resizeCanvas;
-    });
-
-    function limpiarFirma() {
-        signaturePad.clear();
-    }
-
-    function guardarFirma() {
-        if (signaturePad.isEmpty()) {
-            Swal.fire('Atención', 'Por favor, realice una firma primero.', 'warning');
-            return;
-        }
-
-        const dataUrl = signaturePad.toDataURL();
-        @this.set('firma_digital', dataUrl);
-        @this.set('modalFirma', false);
-
-        Swal.fire({
-            icon: 'success',
-            title: 'Firma guardada',
-            timer: 1000,
-            showConfirmButton: false
-        });
-    }
 
     //Dictdo por voz
 

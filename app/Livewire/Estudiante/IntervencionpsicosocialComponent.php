@@ -28,6 +28,7 @@ class IntervencionpsicosocialComponent extends Component
     public $descripcion_derivacion;
     public $profesionales = [];
     public $viaingresos = [];
+    public $fechaEntrevista;
     public $archivos;
     public $motivos = [];
     public $tipos = [];
@@ -49,6 +50,7 @@ class IntervencionpsicosocialComponent extends Component
 
     public function mount($id)
     {
+        $this->fechaEntrevista = now()->format('Y-m-d');
         $this->estudiante = Estudiante::findOrFail($id);
         $this->profesionales = Profesional::all();
         $this->viaingresos = Viaingreso::all();
@@ -107,7 +109,7 @@ class IntervencionpsicosocialComponent extends Component
                     'usuario_id'     => auth()->id(),
                     'via_ingreso_id' => $this->via_ingreso_id,
                     'descripcion'    => $this->descripcion_derivacion,
-                    'fecha'          => now(),
+                    'fecha'          => $this->fechaEntrevista,
                 ]);
 
                 // 2. Guardar Detalles específicos de Psicosocial

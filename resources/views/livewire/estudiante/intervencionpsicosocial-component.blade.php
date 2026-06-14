@@ -69,7 +69,7 @@
                     <i class="fa-solid fa-calendar"></i>
                 </div>
                 <h3 class="text-lg font-semibold text-slate-800 dark:text-white">
-                    <strong>Fecha:</strong> {{ now()->format('d/m/Y') }}
+                    <flux:input type="date"  wire:model="fechaEntrevista" />
                 </h3>
             </div>
         </div>

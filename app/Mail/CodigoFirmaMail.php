@@ -11,8 +11,12 @@ use Illuminate\Queue\SerializesModels;
 class CodigoFirmaMail extends Mailable
 {
     use Queueable, SerializesModels;
+    public $detalle;
 
-    public function __construct(public $codigo) {}
+    public function __construct(public $codigo,$detalle) {
+        $this->codigo = $codigo;
+        $this->detalle = $detalle; // 👈 Lo asignamos
+    }
 
     public function envelope(): Envelope
     {

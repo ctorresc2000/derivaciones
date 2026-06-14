@@ -29,6 +29,7 @@ class DerivacionComponent extends Component
     public $profesionales = [];
     public $viaingresos = [];
     public $archivos;
+    public $fechaEntrevista;
     public $faltas = [];
     public $medidas = [];
     public $listaUsuarios = [];
@@ -49,6 +50,7 @@ class DerivacionComponent extends Component
 
     public function mount($id)
     {
+        $this->fechaEntrevista = now()->format('Y-m-d');
         $this->estudiante = Estudiante::findOrFail($id);
         $this->profesionales = Profesional::all();
         $this->viaingresos=Viaingreso::orderBy('via_ingreso','asc')->get();
@@ -144,7 +146,7 @@ class DerivacionComponent extends Component
                     'usuario_id'     => auth()->id(), // Asegúrate que el campo sea 'usuario_id' o 'user_id'
                     'via_ingreso_id' => $this->via_ingreso_id,
                     'descripcion'    => $this->descripcion_derivacion,
-                    'fecha'          => now(),
+                    'fecha'          => $this->fechaEntrevista,
                 ]);
 
                 // 2. Guardar Detalles
