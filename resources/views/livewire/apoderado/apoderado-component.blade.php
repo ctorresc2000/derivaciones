@@ -31,7 +31,7 @@
                         <div>
                             <flux:input
                                 label="Rut"
-                                mask:dynamic="$input.replace(/[\.\-]/g, '').length > 9 ?  '999.999.999-*' : '99.999.999-*'"
+                                mask:dynamic="$input.replace(/[\.\-]/g, '').length > 9 ? '999.999.999-*' : ($input.replace(/[\.\-]/g, '').length > 8 ? '99.999.999-*' : '9.999.999-*')"
                                 wire:model="rut"
                                 placeholder="Rut del apoderado"
                                 />

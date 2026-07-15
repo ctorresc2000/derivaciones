@@ -45,6 +45,36 @@ final class CursosTable extends PowerGridComponent
             ->add('id')
             ->add('curso')
             ->add('descripcion')
+            ->add('profesor_nombre', fn (Curso $model) => $model->profesorJefe->name ?? 'Sin asignar')
+            ->add('profesor_select', function (Curso $model) {
+                // Obtenemos todos los profesores para el select
+                $profesores = \App\Models\User::all(); // Puedes filtrar aquí por rol si prefieres
+
+                return \Illuminate\Support\Facades\Blade::render('
+                    <select wire:change="$wire.cambiarProfesor({{ $model->id }}, $event.target.value)"
+                            class="block w-full border-gray-300 rounded-md shadow-sm text-sm">
+                        <option value="">Seleccionar...</option>
+                        @foreach($profesores as $profesor)
+                            <option value="{{ $profesor->id }}" {{ $model->user_id == $profesor->id ? "selected" : "" }}>
+                                {{ $profesor->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                ', [
+                    'model' => $model,
+                    'profesores' => $profesores
+                ]);
+            })
+            ->add('user_id', function (Curso $model) {
+                return \Illuminate\Support\Facades\Blade::render('
+                    <select wire:change="$wire.onUpdatedEditable({{ $model->id }}, \'user_id\', $event.target.value)">
+                        <option value="">Sin asignar</option>
+                        @foreach(\App\Models\User::all() as $u)
+                            <option value="{{ $u->id }}" {{ $model->user_id == $u->id ? "selected" : "" }}>{{ $u->name }}</option>
+                        @endforeach
+                    </select>
+                ', ['model' => $model]);
+            })
             ->add('estado_badge', function (Curso $model) {
             return $model->estado == 'Activo'
                 ? '<span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">Activo</span>'
@@ -67,6 +97,9 @@ final class CursosTable extends PowerGridComponent
                 ->sortable()
                 ->searchable()
                 ->editOnClick(),
+
+           Column::make('Profesor Jefe', 'profesor_select', 'user_id')
+                ->sortable(),
 
 
             Column::make('Estado', 'estado_badge', 'estado')
@@ -117,6 +150,20 @@ final class CursosTable extends PowerGridComponent
                 ->class('p-2 rounded bg-red-500 text-white hover:bg-red-600')
                 ->dispatch('delete', ['rowId' => $row->id]),
         ];
+    }
+
+    public function cambiarProfesor($id, $userId): void
+    {
+        $curso = Curso::find($id);
+        if ($curso) {
+            // Si el valor viene vacío (Seleccionar...), guardamos null
+            $curso->update([
+                'user_id' => $userId === '' ? null : $userId
+            ]);
+
+            $this->dispatch('notificacion', mensaje: 'Profesor actualizado correctamente');
+            // No es necesario refrescar toda la tabla, el select ya se ve actualizado
+        }
     }
 
     /*

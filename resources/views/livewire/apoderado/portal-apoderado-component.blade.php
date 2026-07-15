@@ -14,7 +14,7 @@
                         wire:model.defer="rutEstudiante"
                         label="RUT del estudiante"
                         placeholder="Ej: 211234567"
-                        mask:dynamic="$input.replace(/[\.\-]/g, '').length > 9 ?  '999.999.999-*' : '99.999.999-*'"
+                        mask:dynamic="$input.replace(/[\.\-]/g, '').length > 9 ? '999.999.999-*' : ($input.replace(/[\.\-]/g, '').length > 8 ? '99.999.999-*' : '9.999.999-*')"
                     />
 
                     <flux:button wire:click="ingresar" variant="primary" class="w-full">
@@ -28,24 +28,34 @@
     @if($paso == 2)
         <div>
 
-            <flux:card class="w-full !max-w-7xl space-y-8">
-                <div class=" justify-between items-center mb-6">
-                    <flux:heading size="xl">Ficha del Estudiante</flux:heading>
+            <flux:card class="w-full !max-w-7xl space-y-6 mb-8">
+                <div class="flex justify-between items-center border-b border-zinc-200 dark:border-zinc-700 pb-4">
+                    <flux:heading size="xl">Actualizar Ficha del Estudiante</flux:heading>
                     <flux:button wire:click="$set('paso', 1)" variant="ghost" size="sm">Volver</flux:button>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-zinc-50 dark:bg-zinc-900 p-4 rounded-lg">
-                    <div>
-                        <flux:text size="sm" class="font-bold">Nombre:</flux:text>
-                        <flux:text>{{ $estudiante->nombre }} {{ $estudiante->apellido }}</flux:text>
-                    </div>
-                    <div>
-                        <flux:text size="sm" class="font-bold">RUT:</flux:text>
-                        <flux:text>{{ $estudiante->rut }}</flux:text>
-                    </div>
-                    <div>
-                        <flux:text size="sm" class="font-bold">Curso:</flux:text>
-                        <flux:text>{{ $estudiante->curso->curso ?? 'N/A' }}</flux:text>
+                {{-- Datos fijos que no se pueden modificar --}}
+                <div class="flex gap-6 p-4 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-300 rounded-lg text-sm border border-indigo-100 dark:border-indigo-800/30">
+                    <div><span class="font-bold opacity-75 mr-1"><i class="fa-solid fa-id-card"></i> RUT:</span> {{ $estudiante->rut }}</div>
+                    <div><span class="font-bold opacity-75 mr-1"><i class="fa-solid fa-graduation-cap"></i> Curso Actual:</span> {{ $estudiante->curso->curso ?? 'Sin curso asignado' }}</div>
+                </div>
+
+                {{-- Formulario Editable del Estudiante --}}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <flux:input wire:model="datosEstudiante.nombre" label="Nombres del Estudiante" />
+
+                    <flux:input wire:model="datosEstudiante.apellido" label="Apellidos del Estudiante" />
+
+                    <flux:input wire:model="datosEstudiante.social" label="Nombre Social (Opcional)" placeholder="Si aplica" />
+
+                    <flux:input type="date" wire:model="datosEstudiante.fecha_nacimiento" label="Fecha de Nacimiento" />
+
+                    <flux:input type="email" wire:model="datosEstudiante.email" label="Correo Electrónico (Estudiante)" />
+
+                    <flux:input wire:model="datosEstudiante.telefono" label="Teléfono (Estudiante)" placeholder="Ej: +56912345678" />
+
+                    <div class="md:col-span-2">
+                        <flux:input wire:model="datosEstudiante.domicilio" label="Dirección / Domicilio Completo" placeholder="Calle, Número, Comuna..." />
                     </div>
                 </div>
             </flux:card>

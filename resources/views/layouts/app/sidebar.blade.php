@@ -10,9 +10,14 @@
                 <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
                 <flux:sidebar.collapse class="lg:hidden" />
             </flux:sidebar.header>
+            <x-desktop-user-menu class="hidden lg:block" :name="auth()->user()->name" />
             <div class="p-2">
                 @livewire('global.selector-anio')
             </div>
+
+
+
+
             <flux:sidebar.nav>
                 <flux:sidebar.group :heading="__('Principal')" class="grid">
                     <flux:sidebar.item :href="route('dashboard')" :current="request()->routeIs('dashboard')">
@@ -75,7 +80,7 @@
                         </flux:sidebar.item>
                         <flux:sidebar.item :href="route('cardex')" :current="request()->routeIs('cardex')" wire:navigate>
                             <i class="fa-solid fa-address-card"></i>
-                            <span class="ml-3">Cardex</span>
+                            <span class="ml-3">Kardex</span>
                         </flux:sidebar.item>
                 </flux:sidebar.group>
 
@@ -150,7 +155,7 @@
                 </flux:sidebar.item>
             </flux:sidebar.nav> --}}
 
-            <x-desktop-user-menu class="hidden lg:block" :name="auth()->user()->name" />
+            {{-- <x-desktop-user-menu class="hidden lg:block" :name="auth()->user()->name" /> --}}
         </flux:sidebar>
 
         <!-- Mobile User Menu -->

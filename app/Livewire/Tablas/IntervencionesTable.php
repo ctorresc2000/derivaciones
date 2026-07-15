@@ -48,28 +48,46 @@ final class IntervencionesTable extends PowerGridComponent
         $user = auth()->user();
 
         return Intervencion::query()
-            ->with(['user', 'estudiante','estudiante.curso', 'detalles.falta', 'detalles.medida','detalles.tipo', 'detalles.motivo'])
-            ->whereYear('created_at', $anioActivo)
-            ->when($user->rol !== 'Administrador', function ($query) use ($user) {
-                // Si NO es Administrador, filtramos por su usuario_id
-                $query->where('usuario_id', $user->id);
-            });
-            // Si ES Administrador, el 'when' se ignora y muestra todos los registros
+        ->with(['estudiante.curso', 'usuario', 'viaIngreso', 'detalles.falta', 'detalles.medida', 'detalles.motivo', 'detalles.tipo']);
+
+        // return Intervencion::query()
+        // ->join('estudiantes', 'intervencions.estudiante_id', '=', 'estudiantes.id')
+        // ->join('users', 'intervencions.usuario_id', '=', 'users.id')
+        // ->join('cursos', 'estudiantes.curso_id', '=', 'cursos.id')
+        // // Usamos 'viaingresos' en ambos lados:
+        // ->leftJoin('viaingresos', 'intervencions.via_ingreso_id', '=', 'viaingresos.id')
+        // ->select('intervencions.*', 'estudiantes.nombre', 'users.name as usuario_nombre', 'cursos.curso as curso_nombre');
     }
 
     public function relationSearch(): array
     {
-        return [];
+        return [
+            'estudiante' => [ // Relación en Intervencion
+                'nombre',
+                'apellido',
+            ],
+            'usuario' => [ // Relación en Intervencion
+                'name',
+            ],
+            'viaIngreso' => [ // Relación en Intervencion
+                'via_ingreso',
+            ],
+        ];
     }
 
     public function fields(): PowerGridFields
     {
         return PowerGrid::fields()
             ->add('id')
-            ->add('estudiante_nombre', function (Intervencion $model) {
-                // Usamos el operador nulo (?->) por si acaso el estudiante fue borrado
-                return $model->estudiante?->nombre . ' ' . $model->estudiante?->apellido.' ('.$model->estudiante?->social.')';
-            })
+            ->add('estudiante_nombre', fn (Intervencion $model) => $model->estudiante->nombre . ' ' . $model->estudiante->apellido)
+            ->add('usuario_nombre', fn (Intervencion $model) => $model->usuario->name)
+            ->add('curso_nombre', fn (Intervencion $model) => $model->estudiante->curso->curso ?? 'Sin Curso')
+            ->add('via_ingreso', fn (Intervencion $model) => $model->viaIngreso->via_ingreso ?? 'N/A')
+
+            // ->add('estudiante_nombre', function (Intervencion $model) {
+            //     Usamos el operador nulo (?->) por si acaso el estudiante fue borrado
+            //     return $model->estudiante?->nombre . ' ' . $model->estudiante?->apellido.' ('.$model->estudiante?->social.')';
+            // })
             ->add('usuario_nombre', function (Intervencion $model) {
                 // Usamos el operador nulo (?->) por si acaso el estudiante fue borrado
                 return $model->user?->name;
@@ -130,39 +148,27 @@ final class IntervencionesTable extends PowerGridComponent
         return [
             Column::make('Id', 'id')
                 ->hidden(true),
+
             Column::make('Fecha', 'fecha_formatted', 'fecha')
                 ->sortable(),
-            Column::make('Estudiante','estudiante_nombre', 'estudiante_id')
-                ->sortable()
-                ->searchable(),
-           Column::add()
-                ->title('Curso')
-                ->field('curso_nombre')
+
+            Column::make('Estudiante', 'estudiante_nombre', 'estudiante_nombre')
                 ->searchable()
                 ->sortable(),
-            Column::make('Intervenido por','usuario_nombre', 'usuario_id')
-                ->sortable()
-                ->searchable(),
-            // Column::make('Derivado a','profesional_derivado_nombre', 'profesional_derivado_id')
-            //     ->sortable()
-            //     ->searchable(),
-            Column::make('Via ingreso','via_ingreso', 'via_ingreso_id')
-                ->sortable()
-                ->searchable(),
-            // Column::make('Descripcion', 'descripcion')
-            //     ->sortable()
-            //     ->searchable(),
 
+           Column::make('Curso', 'curso_nombre', 'cursos.curso') // 'cursos.curso' es la columna real
+                ->sortable(),
 
-            // Column::make('Estado','estado_badge', 'estado')
-            //     ->sortable(),
+            Column::make('Intervenido por', 'usuario_nombre', 'usuario_nombre')
+                ->searchable()
+                ->sortable(),
+
+            Column::make('Via ingreso', 'via_ingreso', 'via_ingreso')
+                ->searchable()
+                ->sortable(),
 
             Column::make('estado', 'tipo_estado_dropdown', 'estado')
                  ->sortable(),
-
-            // Column::make('Created at', 'created_at')
-            //     ->sortable()
-            //     ->searchable(),
 
             Column::action('Action')
         ];
@@ -171,7 +177,10 @@ final class IntervencionesTable extends PowerGridComponent
     public function filters(): array
     {
         return [
-            Filter::datepicker('fecha'),
+            Filter::datepicker('fecha')
+            ->params([
+                'enableTime' => false,
+            ]),
         ];
     }
 

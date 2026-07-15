@@ -78,7 +78,7 @@
                     <div>
                         <flux:input
                             label="Rut"
-                           mask:dynamic="$input.replace(/[\.\-]/g, '').length > 9 ?  '999.999.999-*' : '99.999.999-*'"
+                            mask:dynamic="$input.replace(/[\.\-]/g, '').length > 9 ? '999.999.999-*' : ($input.replace(/[\.\-]/g, '').length > 8 ? '99.999.999-*' : '9.999.999-*')"
                             wire:model="rut"
                             placeholder="Rut del estudiante"
                             />
@@ -301,7 +301,7 @@
         @endif
 
             <form wire:submit="guardarDerivacion" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3 mt-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mt-4">
 
                     <div class="flex flex-col mb-4">
                         <flux:text class="text-gray-500 text-sm font-semibold uppercase tracking-wider">
@@ -325,20 +325,29 @@
                         </flux:text>
                     </div>
 
-                    <div class="col-span-2">
+                    <div>
                         <flux:text  class="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-2">
                             Motivo Derivación
                         </flux:text>
                         <flux:select wire:model="motivo_derivacion">
                             <option value="">Seleccione</option>
-                            @foreach($motivos as $motivo)
+                            {{-- Grupo de Motivos --}}
+                            <optgroup label="Motivos de Intervención">
+                                @foreach($motivos->where('grupo', 'Motivos de Intervención') as $item)
+                                    <option value="{{ $item->valor }}">{{ $item->texto }}</option>
+                                @endforeach
+                            </optgroup>
 
-                                <option value="{{ $motivo->id }}">{{ $motivo->motivo }}</option>
-
-                            @endforeach
+                            {{-- Grupo de Faltas --}}
+                            <optgroup label="Faltas Disciplinarias">
+                                @foreach($motivos->where('grupo', 'Faltas Disciplinarias') as $item)
+                                    <option value="{{ $item->valor }}">{{ $item->texto }}</option>
+                                @endforeach
+                            </optgroup>
                         </flux:select>
                     </div>
-                    <div class="col-span-2">
+                </div>
+                    {{-- <div class="col-span-2">
                         <flux:text  class="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-2">
                             Profesional al que deriva
                         </flux:text>
@@ -350,66 +359,87 @@
                                 @endif
                             @endforeach
                         </flux:select>
-                    </div>
-
-                </div>
-                <div  class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-3 mt-4">
-                    <div>
-                        <flux:text  class="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-4">
-                            Detalle de la Derivacion
-                        </flux:text>
-                        {{-- BOTÓN PARA MEJORAR CON IA --}}
-                        <div class="flex justify-end">
-                            <flux:button
-                                variant="subtle"
-                                size="sm"
-                                wire:click="mejorarTextoIAdetalle"
-                                wire:loading.attr="disabled"
-                                class="text-indigo-600 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100"
-                            >
-                                <span wire:loading.remove wire:target="mejorarTextoIA">
-                                    <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Mejorar con IA
-                                </span>
-                                <span wire:loading wire:target="mejorarTextoIA">
-                                    <i class="fa-solid fa-spinner animate-spin mr-2"></i> Procesando...
-                                </span>
-                            </flux:button>
+                    </div> --}}
+                <div class="col-span-2">
+                    <flux:checkbox.group wire:model="profesionales_derivados_ids" label="Profesional(es) al que deriva">
+                        {{-- EL CAMBIO ESTÁ AQUÍ: Agregamos lg:grid-cols-4 y ajustamos el gap --}}
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
+                            @foreach($profesionales as $profesional)
+                                @if ($profesional->estado === "Activo")
+                                    <flux:checkbox
+                                        value="{{ $profesional->id }}"
+                                        label="{{ $profesional->name }} - {{ $profesional->tipoProfesional->tipo }}"
+                                    />
+                                @endif
+                            @endforeach
                         </div>
-
-                        {{-- Textarea para detalle de derivación --}}
-                        <flux:textarea
-                            wire:model="detalle_derivacion"
-                            placeholder="Detalle aquí el motivo por el cual deriva a la estudiante...   "
-                        />
-                    </div>
-
-                    <div>
-                        <flux:text  class="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-4">
-                            Acciones Previas
-                        </flux:text>
-                        {{-- BOTÓN PARA MEJORAR CON IA --}}
-                        <div class="flex justify-end">
-                            <flux:button
-                                variant="subtle"
-                                size="sm"
-                                wire:click="mejorarTextoIAacciones"
-                                wire:loading.attr="disabled"
-                                class="text-indigo-600 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100"
-                            >
-                                <span wire:loading.remove wire:target="mejorarTextoIA">
-                                    <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Mejorar con IA
-                                </span>
-                                <span wire:loading wire:target="mejorarTextoIA">
-                                    <i class="fa-solid fa-spinner animate-spin mr-2"></i> Procesando...
-                                </span>
-                            </flux:button>
-                        </div>
-                        <flux:textarea
-                            wire:model="previos_derivacion"
-                            placeholder="Detalle aquí que acciones tomó antes de derivar a la estudiante...   "
-                        />
-                    </div>
+                    </flux:checkbox.group>
                 </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+
+    {{-- COLUMNA 1: DETALLE DE DERIVACIÓN --}}
+    <div>
+        {{-- Contenedor Flex para alinear Título y Botón en la misma línea --}}
+        <div class="flex items-center justify-between mb-2">
+            <flux:text class="text-gray-500 text-sm font-semibold uppercase tracking-wider m-0">
+                Detalle de la Derivacion
+            </flux:text>
+
+            <flux:button
+                variant="subtle"
+                size="sm"
+                wire:click="mejorarTextoIAdetalle"
+                wire:loading.attr="disabled"
+                class="text-indigo-600 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100"
+            >
+                <span wire:loading.remove wire:target="mejorarTextoIAdetalle">
+                    <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Mejorar con IA
+                </span>
+                <span wire:loading wire:target="mejorarTextoIAdetalle">
+                    <i class="fa-solid fa-spinner animate-spin mr-2"></i> Procesando...
+                </span>
+            </flux:button>
+        </div>
+
+        <flux:textarea
+            wire:model="detalle_derivacion"
+            placeholder="Detalle aquí el motivo por el cual deriva a la estudiante..."
+        />
+    </div>
+
+    {{-- COLUMNA 2: ACCIONES PREVIAS --}}
+    <div>
+        {{-- Contenedor Flex para alinear Título y Botón en la misma línea --}}
+        <div class="flex items-center justify-between mb-2">
+            <flux:text class="text-gray-500 text-sm font-semibold uppercase tracking-wider m-0">
+                Acciones Previas
+            </flux:text>
+
+            <flux:button
+                variant="subtle"
+                size="sm"
+                wire:click="mejorarTextoIAacciones"
+                wire:loading.attr="disabled"
+                class="text-indigo-600 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100"
+            >
+                <span wire:loading.remove wire:target="mejorarTextoIAacciones">
+                    <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Mejorar con IA
+                </span>
+                <span wire:loading wire:target="mejorarTextoIAacciones">
+                    <i class="fa-solid fa-spinner animate-spin mr-2"></i> Procesando...
+                </span>
+            </flux:button>
+        </div>
+
+        <flux:textarea
+            wire:model="previos_derivacion"
+            placeholder="Detalle aquí que acciones tomó antes de derivar a la estudiante..."
+        />
+    </div>
+
+</div>
+
                 <div>
                     <div class="mt-4">
                         <flux:label>Adjuntar Documentos (Opcional)</flux:label>
@@ -540,27 +570,36 @@
                 @if($estudianteSeleccionadoRedes && $estudianteSeleccionadoRedes->apoderados->count() > 0)
                     @foreach($estudianteSeleccionadoRedes->apoderados as $apod)
                         <div class="flex justify-between items-center p-3 bg-slate-50 border rounded-lg">
-                            <div class="grid justify-between  grid-cols-1 md:grid-cols-2 gap-6">
-                                <div><p class="text-sm font-bold"><strong>Nombre :</strong>{{ $apod->apoderado }}</p></div>
-                                <div><p class="text-sm font-bold"><strong>Teléfono :</strong>{{ $apod->telefono }}</p></div>
-                                <div><p class="text-sm font-bold"><strong>Email : </strong>{{ $apod->correo }}</p></div>
-                                <div><p class="text-sm font-bold"><strong>Dirección :</strong>{{ $apod->direccion }}</p></div>
-                                <div> <p class="text-sm font-bold">
-                                    <strong>Estado : </strong>
-                                    <span class="{{ $apod->estado == 'Activo' ? 'text-green-600' : 'text-red-600' }}">
-                                        {{ $apod->estado }}
-                                    </span>
-                                </p></div>
-                                <div><p class="text-sm font-bold"><strong>Carnet :</strong>
-                                    <a class="text-xs text-slate-500" href="{{asset('storage/'. $apod->carnet) }}" target="_blank">Ver Carnet</a>
-                                </p></div>
-
-
-
-
-
-
+                            <div class="flex justify-between items-start p-3 bg-white dark:bg-zinc-800 border dark:border-zinc-700 rounded-lg shadow-sm">
+                            <div class="grid justify-between grid-cols-1 md:grid-cols-2 gap-6 w-full pr-4">
+                                <div><p class="text-sm"><strong>Nombre : </strong>{{ $apod->apoderado }}</p></div>
+                                <div><p class="text-sm"><strong>Teléfono : </strong>{{ $apod->telefono }}</p></div>
+                                <div><p class="text-sm"><strong>Email : </strong>{{ $apod->correo }}</p></div>
+                                <div><p class="text-sm"><strong>Dirección : </strong>{{ $apod->direccion }}</p></div>
+                                <div>
+                                    <p class="text-sm">
+                                        <strong>Estado : </strong>
+                                        <span class="{{ $apod->estado == 'Activo' ? 'text-emerald-600' : 'text-red-600' }} font-semibold">
+                                            {{ $apod->estado }}
+                                        </span>
+                                    </p>
+                                </div>
+                                <div>
+                                    <p class="text-sm"><strong>Carnet : </strong>
+                                        @if($apod->carnet)
+                                            <a class="text-blue-600 hover:underline" href="{{ asset('storage/'. $apod->carnet) }}" target="_blank">Ver Carnet</a>
+                                        @else
+                                            <span class="text-slate-400 italic">No adjunto</span>
+                                        @endif
+                                    </p>
+                                </div>
                             </div>
+
+                            {{-- EL BOTÓN DE DESVINCULAR --}}
+                            <div class="flex-shrink-0 mt-1">
+                                <flux:button variant="danger" size="sm" icon="trash" wire:click="desvincularApoderado({{ $apod->id }})" title="Quitar Apoderado de este Estudiante" />
+                            </div>
+                        </div>
                             {{-- <flux:button variant="ghost" icon="trash" wire:click="desvincularRed({{ $red->id }})" /> --}}
                         </div>
                     @endforeach

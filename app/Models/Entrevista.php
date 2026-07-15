@@ -6,9 +6,14 @@ use App\Models\Curso;
 use App\Models\Estudiante;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Traits\RegistraAuditoria;
+use App\Traits\HasDocuments;
 
 class Entrevista extends Model
 {
+    use RegistraAuditoria;
+    use HasDocuments;
+
     protected $fillable = [
         'estudiante_id',
         'curso_id',

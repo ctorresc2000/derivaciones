@@ -18,6 +18,9 @@ use Livewire\WithFileUploads;
 use App\Traits\HasDocuments;
 use Illuminate\Support\Facades\Http;
 use Livewire\Attributes\Url;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\NotificacionDerivacion;
+use App\Models\Falta;
 
 class EstudianteComponent extends Component
 {
@@ -86,6 +89,8 @@ class EstudianteComponent extends Component
     public $fechaDerivacion;
 
     public $modalApoderados=false;
+
+    public $profesionales_derivados_ids = [];
 
     protected $listeners = ['abrirModalRedes','abrirModalApoderados'];
 
@@ -284,7 +289,28 @@ class EstudianteComponent extends Component
 
 
         $this->viaingresos=Viaingreso::orderBy('via_ingreso','asc')->get();
-        $this->motivos=Motivointervencion::orderBy('motivo','asc')->get();
+        //$this->motivos=Motivointervencion::orderBy('motivo','asc')->get();
+
+        // 1. Traemos los motivos y los transformamos a un formato estándar
+        $motivos = Motivointervencion::orderBy('motivo', 'asc')->get()->map(function ($item) {
+            return (object) [
+                'valor' => 'motivo_' . $item->id, // Prefijo para evitar choque de IDs
+                'texto' => $item->motivo,
+                'grupo' => 'Motivos de Intervención'
+            ];
+        });
+
+        // 2. Traemos las faltas y las transformamos al mismo formato
+        $faltas = Falta::orderBy('falta', 'asc')->get()->map(function ($item) {
+            return (object) [
+                'valor' => 'falta_' . $item->id, // Prefijo para evitar choque de IDs
+                'texto' => $item->falta,
+                'grupo' => 'Faltas Disciplinarias'
+            ];
+        });
+
+        // 3. Unimos ambas colecciones en tu variable original
+        $this->motivos = $motivos->merge($faltas);
 
     }
 
@@ -498,58 +524,98 @@ class EstudianteComponent extends Component
 
     public function guardarDerivacion()
     {
+        // 1. VALIDACIÓN ACTUALIZADA
         $this->validate([
             'motivo_derivacion' => 'required',
-            'profesional_derivado_id' => 'required',
+            'profesionales_derivados_ids' => 'required|array|min:1',
             'detalle_derivacion' => 'required',
-            'archivo_adjunto.*' => 'nullable|file|max:10240', // Validación para múltiples archivos
+            'archivo_adjunto.*' => 'nullable|file|max:10240',
+        ], [
+            'profesionales_derivados_ids.required' => 'Debes seleccionar al menos un profesional al cual derivar.',
         ]);
 
         try {
-            $nuevaDerivacion = Derivarestudiante::create([
-                'estudiante_id' => $this->estudianteSeleccionado->id,
-                'user_id' => Auth::user()->id,
-                'motivo_derivacion' => $this->motivo_derivacion,
-                'profesional_derivado_id' => $this->profesional_derivado_id,
-                'detalle_derivacion' => $this->detalle_derivacion,
-                'fecha_derivacion' => now(),
-                'previos_derivacion' => $this->previos_derivacion,
-                'estado' => 'Pendiente',
-            ]);
+            // Traducimos el prefijo al texto real
+            $textoMotivo = $this->motivo_derivacion;
+            foreach ($this->motivos as $item) {
+                if ($item->valor === $this->motivo_derivacion) {
+                    $textoMotivo = $item->texto;
+                    break;
+                }
+            }
 
-            // Asegúrate de que se trate como array siempre
+            // Arreglo temporal para ir guardando las derivaciones creadas
+            $derivacionesCreadas = [];
+
+            // 2. CREAMOS UNA DERIVACIÓN INDEPENDIENTE POR CADA PROFESIONAL
+            foreach ($this->profesionales_derivados_ids as $profesional_id) {
+                $nuevaDerivacion = Derivarestudiante::create([
+                    'estudiante_id' => $this->estudianteSeleccionado->id,
+                    'user_id' => Auth::user()->id,
+                    'motivo_derivacion' => $textoMotivo,
+                    'profesional_derivado_id' => $profesional_id,
+                    'detalle_derivacion' => $this->detalle_derivacion,
+                    'fecha_derivacion' => $this->fechaDerivacion ?? now(),
+                    'previos_derivacion' => $this->previos_derivacion,
+                    'estado' => 'Pendiente',
+                ]);
+
+                $derivacionesCreadas[] = $nuevaDerivacion;
+            }
+
+            // 3. PROCESAMOS LOS ARCHIVOS Y LOS "CLONAMOS" A CADA DERIVACIÓN
             $coleccionArchivos = is_array($this->archivo_adjunto)
                 ? $this->archivo_adjunto
                 : ($this->archivo_adjunto ? [$this->archivo_adjunto] : []);
 
             if (count($coleccionArchivos) > 0) {
                 foreach ($coleccionArchivos as $archivo) {
-                    // Verificamos que sea un archivo temporal válido antes de procesar
                     if ($archivo instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
-                        $rutaGuardada = $archivo->store("documents/derivaciones/{$nuevaDerivacion->id}", 'public');
 
-                        $nuevaDerivacion->documents()->create([
-                            'name'      => $archivo->getClientOriginalName(),
-                            'file_path' => $rutaGuardada,
-                            'mime_type' => $archivo->getClientMimeType(),
-                            'size'      => $archivo->getSize(),
-                        ]);
+                        $contenido = file_get_contents($archivo->getRealPath());
+                        $nombreOriginal = $archivo->getClientOriginalName();
+                        $mime = $archivo->getClientMimeType();
+                        $size = $archivo->getSize();
+
+                        foreach ($derivacionesCreadas as $derivacion) {
+                            $nombreUnico = uniqid() . '_' . $nombreOriginal;
+                            $rutaGuardada = "documents/derivaciones/{$derivacion->id}/{$nombreUnico}";
+
+                            \Illuminate\Support\Facades\Storage::disk('public')->put($rutaGuardada, $contenido);
+
+                            $derivacion->documents()->create([
+                                'name'      => $nombreOriginal,
+                                'file_path' => $rutaGuardada,
+                                'mime_type' => $mime,
+                                'size'      => $size,
+                            ]);
+                        }
                     }
                 }
             }
 
+            // 4. ENVÍO DE NOTIFICACIONES POR CORREO
+            $profesionalesDestino = \App\Models\User::whereIn('id', $this->profesionales_derivados_ids)->get();
+
+            foreach ($profesionalesDestino as $profesional) {
+                if (!empty($profesional->email)) {
+                    Mail::to($profesional->email)->send(new NotificacionDerivacion($this->estudianteSeleccionado));
+                }
+            }
+
+            // 5. FINALIZAMOS Y LIMPIAMOS
             $this->dispatch('swal', [
                 'icon' => 'success',
                 'title' => 'Éxito',
-                'text' => 'Derivación y archivos guardados correctamente',
+                'text' => 'Derivaciones guardadas y correos enviados correctamente.',
             ]);
 
             $this->derivarModal = false;
-            $this->reset(['motivo_derivacion', 'profesional_derivado_id', 'detalle_derivacion', 'previos_derivacion', 'archivo_adjunto']);
+            $this->reset(['motivo_derivacion', 'profesionales_derivados_ids', 'detalle_derivacion', 'previos_derivacion', 'archivo_adjunto']);
             $this->dispatch('refreshTable');
 
         } catch (\Exception $e) {
-            $this->dispatch('swal', ['icon' => 'error', 'title' => 'Error', 'text' => $e->getMessage()]);
+            $this->dispatch('swal', ['icon' => 'error', 'title' => 'Error al guardar', 'text' => $e->getMessage()]);
         }
     }
 
@@ -609,36 +675,85 @@ class EstudianteComponent extends Component
         $this->modalRedes = false;
     }
 
+    // public function mejorarTextoIAdetalle()
+    // {
+    //     if (empty($this->detalle_derivacion)) return;
+    //     $this->mejorandoDetalle = true;
+
+    //     try {
+    //         $response = Http::withHeaders([
+    //             'Authorization' => 'Bearer ' . env('GROQ_API_KEY'),
+    //             'Content-Type' => 'application/json',
+    //         ])->post('https://api.groq.com/openai/v1/chat/completions', [
+    //             'model' => 'llama-3.3-70b-versatile', // Modelo actualizado y vigente
+    //             'messages' => [
+    //                 [
+    //                     'role' => 'system',
+    //                     'content' => 'Eres un corrector de estilo profesional para reportes escolares.'
+    //                 ],
+    //                 [
+    //                     'role' => 'user',
+    //                     'content' => 'Mejora la redacción y ortografía de este texto, manteniéndolo formal: ' . $this->detalle_derivacion
+    //                 ]
+    //             ],
+    //             'temperature' => 0.5,
+    //         ]);
+
+    //         if ($response->successful()) {
+    //             $this->detalle_derivacion = $response->json()['choices'][0]['message']['content'];
+    //             $this->dispatch('swal', ['icon' => 'success', 'title' => '¡Mejorado con éxito!']);
+    //         } else {
+    //             // Si Groq devuelve error, aquí veremos qué modelo sugiere usar
+    //             $errorDetail = $response->json()['error']['message'] ?? 'Error desconocido';
+    //             throw new \Exception($errorDetail);
+    //         }
+    //     } catch (\Exception $e) {
+    //         $this->dispatch('swal', ['icon' => 'error', 'title' => 'Fallo la IA', 'text' => $e->getMessage()]);
+    //     }
+
+    //     $this->mejorandoDetalle = false;
+    // }
+
     public function mejorarTextoIAdetalle()
     {
         if (empty($this->detalle_derivacion)) return;
         $this->mejorandoDetalle = true;
 
         try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('GROQ_API_KEY'),
+            // 1. Preparamos el texto uniendo las instrucciones con tu variable
+            $prompt = "Eres un corrector de estilo profesional para reportes escolares.\n\n" .
+                      "Mejora la redacción y ortografía de este texto, manteniéndolo formal: " . $this->detalle_derivacion;
+
+            // 2. Hacemos la petición a la API de Gemini (modelo 2.5 flash)
+            $response = Http::withoutVerifying()->withHeaders([
                 'Content-Type' => 'application/json',
-            ])->post('https://api.groq.com/openai/v1/chat/completions', [
-                'model' => 'llama-3.3-70b-versatile', // Modelo actualizado y vigente
-                'messages' => [
+            ])->post('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . env('GEMINI_API_KEY'), [
+                'contents' => [
                     [
-                        'role' => 'system',
-                        'content' => 'Eres un corrector de estilo profesional para reportes escolares.'
-                    ],
-                    [
-                        'role' => 'user',
-                        'content' => 'Mejora la redacción y ortografía de este texto, manteniéndolo formal: ' . $this->detalle_derivacion
+                        'parts' => [
+                            ['text' => $prompt]
+                        ]
                     ]
                 ],
-                'temperature' => 0.5,
+                'generationConfig' => [
+                    'temperature' => 0.5, // Mantenemos tu configuración original
+                ]
             ]);
 
+            // 3. Verificamos la respuesta
             if ($response->successful()) {
-                $this->detalle_derivacion = $response->json()['choices'][0]['message']['content'];
-                $this->dispatch('swal', ['icon' => 'success', 'title' => '¡Mejorado con éxito!']);
+                // Extracción de texto usando la estructura JSON específica de Gemini
+                $data = $response->json();
+
+                if (isset($data['candidates'][0]['content']['parts'][0]['text'])) {
+                    $this->detalle_derivacion = $data['candidates'][0]['content']['parts'][0]['text'];
+                    $this->dispatch('swal', ['icon' => 'success', 'title' => '¡Mejorado con éxito!']);
+                } else {
+                    throw new \Exception('Gemini no devolvió ningún texto válido.');
+                }
             } else {
-                // Si Groq devuelve error, aquí veremos qué modelo sugiere usar
-                $errorDetail = $response->json()['error']['message'] ?? 'Error desconocido';
+                // Captura de errores específica de la API de Google
+                $errorDetail = $response->json()['error']['message'] ?? 'Error desconocido en el servidor de Gemini';
                 throw new \Exception($errorDetail);
             }
         } catch (\Exception $e) {
@@ -648,36 +763,85 @@ class EstudianteComponent extends Component
         $this->mejorandoDetalle = false;
     }
 
+    // public function mejorarTextoIAacciones()
+    // {
+    //     if (empty($this->previos_derivacion)) return;
+    //     $this->mejorandoAcciones = true;
+
+    //     try {
+    //         $response = Http::withHeaders([
+    //             'Authorization' => 'Bearer ' . env('GROQ_API_KEY'),
+    //             'Content-Type' => 'application/json',
+    //         ])->post('https://api.groq.com/openai/v1/chat/completions', [
+    //             'model' => 'llama-3.3-70b-versatile', // Modelo actualizado y vigente
+    //             'messages' => [
+    //                 [
+    //                     'role' => 'system',
+    //                     'content' => 'Eres un corrector de estilo profesional para reportes escolares.'
+    //                 ],
+    //                 [
+    //                     'role' => 'user',
+    //                     'content' => 'Mejora la redacción y ortografía de este texto, manteniéndolo formal: ' . $this->previos_derivacion
+    //                 ]
+    //             ],
+    //             'temperature' => 0.5,
+    //         ]);
+
+    //         if ($response->successful()) {
+    //             $this->previos_derivacion = $response->json()['choices'][0]['message']['content'];
+    //             $this->dispatch('swal', ['icon' => 'success', 'title' => '¡Mejorado con éxito!']);
+    //         } else {
+    //             // Si Groq devuelve error, aquí veremos qué modelo sugiere usar
+    //             $errorDetail = $response->json()['error']['message'] ?? 'Error desconocido';
+    //             throw new \Exception($errorDetail);
+    //         }
+    //     } catch (\Exception $e) {
+    //         $this->dispatch('swal', ['icon' => 'error', 'title' => 'Fallo la IA', 'text' => $e->getMessage()]);
+    //     }
+
+    //     $this->mejorandoAcciones = false;
+    // }
+
     public function mejorarTextoIAacciones()
     {
         if (empty($this->previos_derivacion)) return;
         $this->mejorandoAcciones = true;
 
         try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('GROQ_API_KEY'),
+            // 1. Preparamos el texto uniendo las instrucciones con tu variable
+            $prompt = "Eres un corrector de estilo profesional para reportes escolares.\n\n" .
+                      "Mejora la redacción y ortografía de este texto, manteniéndolo formal: " . $this->previos_derivacion  ;
+
+            // 2. Hacemos la petición a la API de Gemini (modelo 2.5 flash)
+            $response = Http::withoutVerifying()->withHeaders([
                 'Content-Type' => 'application/json',
-            ])->post('https://api.groq.com/openai/v1/chat/completions', [
-                'model' => 'llama-3.3-70b-versatile', // Modelo actualizado y vigente
-                'messages' => [
+            ])->post('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . env('GEMINI_API_KEY'), [
+                'contents' => [
                     [
-                        'role' => 'system',
-                        'content' => 'Eres un corrector de estilo profesional para reportes escolares.'
-                    ],
-                    [
-                        'role' => 'user',
-                        'content' => 'Mejora la redacción y ortografía de este texto, manteniéndolo formal: ' . $this->previos_derivacion
+                        'parts' => [
+                            ['text' => $prompt]
+                        ]
                     ]
                 ],
-                'temperature' => 0.5,
+                'generationConfig' => [
+                    'temperature' => 0.5, // Mantenemos tu configuración original
+                ]
             ]);
 
+            // 3. Verificamos la respuesta
             if ($response->successful()) {
-                $this->previos_derivacion = $response->json()['choices'][0]['message']['content'];
-                $this->dispatch('swal', ['icon' => 'success', 'title' => '¡Mejorado con éxito!']);
+                // Extracción de texto usando la estructura JSON específica de Gemini
+                $data = $response->json();
+
+                if (isset($data['candidates'][0]['content']['parts'][0]['text'])) {
+                    $this->previos_derivacion = $data['candidates'][0]['content']['parts'][0]['text'];
+                    $this->dispatch('swal', ['icon' => 'success', 'title' => '¡Mejorado con éxito!']);
+                } else {
+                    throw new \Exception('Gemini no devolvió ningún texto válido.');
+                }
             } else {
-                // Si Groq devuelve error, aquí veremos qué modelo sugiere usar
-                $errorDetail = $response->json()['error']['message'] ?? 'Error desconocido';
+                // Captura de errores específica de la API de Google
+                $errorDetail = $response->json()['error']['message'] ?? 'Error desconocido en el servidor de Gemini';
                 throw new \Exception($errorDetail);
             }
         } catch (\Exception $e) {
@@ -843,6 +1007,37 @@ class EstudianteComponent extends Component
         } catch (\Exception $e) {
             $this->dispatch('swal', ['icon' => 'error', 'title' => 'Error', 'text' => $e->getMessage()]);
         }
+    }
+
+    public function desvincularApoderado($apoderadoId)
+    {
+        if ($this->estudianteSeleccionadoRedes) {
+
+            // 1. Desvinculamos en la tabla pivote
+            $this->estudianteSeleccionadoRedes->apoderados()->detach($apoderadoId);
+
+            // 2. EL HELPER MANUAL DE AUDITORÍA
+            $apoderado = \App\Models\Apoderado::find($apoderadoId);
+            $nombreApoderado = $apoderado ? $apoderado->apoderado : "ID: {$apoderadoId}";
+
+            activity()
+                ->causedBy(auth()->user())
+                ->performedOn($this->estudianteSeleccionadoRedes) // El sujeto es el Estudiante
+                ->log("Se desvinculó al apoderado: {$nombreApoderado}");
+
+            // 3. Recargamos la relación para que desaparezca visualmente del modal
+            $this->estudianteSeleccionadoRedes->load('apoderados');
+
+            // 4. Mostramos la alerta de éxito
+            $this->dispatch('swal', [
+                'icon' => 'success',
+                'title' => 'Desvinculado',
+                'text' => 'El apoderado fue quitado de la ficha del estudiante.',
+                'timer' => 1500
+            ]);
+        }
+
+        $this->modalApoderados=false;
     }
 
 }

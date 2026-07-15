@@ -19,8 +19,9 @@ return new class extends Migration
             $table->string('direccion');
             $table->string('telefono');
             $table->string('correo');
+            $table->enum('tipo_apoderado',['Titular','Suplente'])->nullable();
             $table->enum('estado',['Activo','Inactivo']);
-            $table->string('carnet');
+            $table->string('carnet')->nullable();
             $table->timestamps();
         });
     }

@@ -40,6 +40,12 @@
                     placeholder="Ej. HC - Atención de Párvulos, Gastronomía, etc."
                 />
 
+                <flux:select label="Profesor Jefe" wire:model="user_id" placeholder="Seleccione un profesor...">
+                    @foreach($profesores as $profesor)
+                        <flux:select.option value="{{ $profesor->id }}">{{ $profesor->name }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+
                 <div class="flex justify-end">
                     <div calss="mr-3">
                         {{-- <flux:button variant="danger" wire:click="$set('abrirModal', false)" class="ml-3"> --}}

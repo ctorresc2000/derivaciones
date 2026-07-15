@@ -43,7 +43,7 @@ final class EstudiantederivadoTable extends PowerGridComponent
         $user = auth()->user();
 
         return Derivarestudiante::query()
-            ->with(['user', 'estudiante', 'profesional', 'motivo'])
+            ->with(['user', 'estudiante', 'profesional'])
             ->whereYear('created_at', $anioActivo)
             // Aplicamos el filtro solo si NO es Administrador
             ->when($user->rol !== 'Administrador', function ($query) use ($user) {
@@ -65,9 +65,13 @@ final class EstudiantederivadoTable extends PowerGridComponent
             ->add('user_id')
             ->add('estudiante_id')
             ->add('motivo_derivacion')
-            ->add('motivo_nombre', function (Derivarestudiante $model) {
-                // Usamos el operador nulo (?->) por si acaso el estudiante fue borrado
-                return $model->motivo?->motivo ?? 'Sin motivo';
+            ->add('motivo_derivacion')
+            ->add('motivo_derivacion_formatted', function (Derivarestudiante $model) {
+                return \Illuminate\Support\Facades\Blade::render('
+                    <div class="whitespace-normal max-w-[250px] leading-tight break-words">
+                        {{ $motivo }}
+                    </div>
+                ', ['motivo' => $model->motivo_derivacion]);
             })
             ->add('previos_derivacion')
             ->add('profesional_derivado_id')
@@ -135,9 +139,10 @@ final class EstudiantederivadoTable extends PowerGridComponent
             //     ->sortable()
             //     ->searchable(),
 
-            Column::make('Motivo derivacion', 'motivo_nombre')
+            Column::make('Motivo derivacion', 'motivo_derivacion_formatted', 'motivo_derivacion')
                 ->sortable()
                 ->searchable(),
+               // ->bodyAttribute('class', 'whitespace-normal max-w-[50px] leading-tight'),
 
             Column::make('Previos derivacion', 'previos_derivacion')
                 ->hidden(true)
@@ -164,7 +169,10 @@ final class EstudiantederivadoTable extends PowerGridComponent
     public function filters(): array
     {
         return [
-            Filter::datepicker('fecha_derivacion_formatted', 'fecha_derivacion'),
+            Filter::datepicker('fecha_derivacion_formatted', 'fecha_derivacion')
+                ->params([
+                    'enableTime' => false,
+                ]),
         ];
     }
 

@@ -1,5 +1,5 @@
 <div>
-    <h1 class="text-3xl mt-4 mb-4">Cardex</h1>
+    <h1 class="text-3xl mt-4 mb-4">Kardex</h1>
     <hr class="mb-6">
 
     @livewire('tablas.entrevistas-table')

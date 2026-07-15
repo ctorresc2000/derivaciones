@@ -39,13 +39,12 @@ class MotivosDerivacion extends Component
         }
 
         // 4. Armamos el Gráfico de Barras
-        $chart = LarapexChart::barChart()
-            ->setTitle('Motivos de Derivación')
-            ->setSubtitle('Causas principales de atención')
-            ->addData($cantidades) // Pasamos solo el arreglo
-            ->setXAxis($etiquetas)
-            ->setHeight(400)
-            ->setColors(['#f59e0b']); // Color Ámbar/Naranja
+        // En lugar de barChart(), usa esto:
+$chart = LarapexChart::donutChart()
+    ->setTitle('Motivos de Derivación')
+    ->setSubtitle('Causas principales de atención')
+    ->addData($cantidades)
+    ->setLabels($etiquetas);
 
         return view('livewire.graficos.motivos-derivacion', compact('chart'));
     }

@@ -54,12 +54,14 @@ Route::get('/entrevistas', EntrevistaComponent::class)->name('entrevistas')->mid
 Route::get('/cardex', CardexComponent::class)->name('cardex')->middleware('rol:Administrador,Usuario');
 Route::get('/apoderados', ApoderadoComponent::class)->name('apoderados')->middleware('rol:Administrador,Usuario');
 
+Route::get('/entrevistas/{id}/camara', \App\Livewire\Estudiante\CamaraMovilComponent::class)->name('entrevistas.camara');
 
-Route::get('/instalar', function () {
-    Artisan::call('storage:link');
-    Artisan::call('optimize:clear');
-    return "✅ Enlace creado y Cache limpio.";
-});
+
+// Route::get('/instalar', function () {
+//     Artisan::call('storage:link');
+//     Artisan::call('optimize:clear');
+//     return "✅ Enlace creado y Cache limpio.";
+// });
 
 // Ruta para el historial del estudiante
 
@@ -72,6 +74,8 @@ Route::get('/estudiante/{id}/historial-pdf', function ($id) {
         'intervenciones.detalles.motivo',
         'intervenciones.detalles.tipo',
         'intervenciones.viaIngreso',
+        'intervenciones.acciones.usuario',
+        'derivaciones.profesional',
         'derivaciones.user',
         'derivaciones.motivo',
         'derivaciones.acciones.usuario'
@@ -105,6 +109,7 @@ Route::get('/estudiante/{id}/historial-pdf', function ($id) {
             'area'         => $item->usuario->tipoProfesional->departamento ?? 'Convivencia',
             'descripcion'  => $item->descripcion,
             'estado'       => $item->estado,
+            'acciones'     => $item->acciones,
             'bg_color'     => $getColor($item->estado),      // Ahora sí será visible
             'text_color'   => $getTextColor($item->estado),  // Ahora sí será visible
             'detalles'     => $item->detalles,
@@ -116,8 +121,10 @@ Route::get('/estudiante/{id}/historial-pdf', function ($id) {
             'fecha'        => $item->created_at->format('d/m/Y'),
             'motivo'       => $item->motivo->motivo ?? 'General',
             'profesional'  => $item->user->name ?? 'N/A',
+            'profesional_derivado' => $item->profesional->name ?? 'N/A',
             'tipo'         => $item->tipo_intervencion,
             'detalle'      => $item->detalle_derivacion,
+            'conclusiones' => $item->conclusiones,
             'estado'       => $item->estado,
             'bg_color'     => $getColor($item->estado),      // Ahora sí será visible
             'text_color'   => $getTextColor($item->estado),  // Ahora sí será visible

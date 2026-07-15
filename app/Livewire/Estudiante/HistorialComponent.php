@@ -28,7 +28,8 @@ class HistorialComponent extends Component
             'derivaciones.motivo',
             'derivaciones.acciones.usuario',
             'derivaciones.documents',
-            'redes'
+            'derivaciones.profesional',
+            'redes',
         ])->findOrFail($id);
 
         $this->prepararDatos();
@@ -56,6 +57,7 @@ class HistorialComponent extends Component
                 'estado'       => $item->estado,
                 'color_estado' => $obtenerColor($item->estado),
                 'detalles'     => $item->detalles,
+                'acciones' => $item->acciones,
                 'documentos'   => $item->documents,
 
             ];
@@ -66,10 +68,12 @@ class HistorialComponent extends Component
             return [
                 'id'           => $item->id,
                 'fecha'        => $item->created_at->format('d/m/Y'),
+                'profesional_derivado'  => $item->profesional->name ?? 'N/A',
                 'motivo'       => $item->motivo->motivo ?? 'General',
                 'profesional'  => $item->user->name,
                 'tipo'         => $item->tipo_intervencion,
                 'detalle'      => $item->detalle_derivacion,
+                'conclusiones' => $item->conclusiones,
                 'estado'       => $item->estado,
                 'color_estado' => $obtenerColor($item->estado),
                 'documentos'   => $item->documents,

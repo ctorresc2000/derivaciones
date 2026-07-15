@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Traits\HasDocuments; // 1. Importas el Trait
+use App\Traits\RegistraAuditoria;
 
 class Intervencion extends Model
 {
     use HasDocuments; // 2. Lo usas dentro de la clase
+    use RegistraAuditoria;
 
     protected $fillable = [
         'estudiante_id',

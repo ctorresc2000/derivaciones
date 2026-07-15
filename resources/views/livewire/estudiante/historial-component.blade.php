@@ -114,6 +114,40 @@
                                 </td>
                             </tr>
                         @endif
+                        @if(count($reg['acciones'] ?? []) > 0)
+                        <tr class="bg-blue-50/30">
+                            <td colspan="4" class="px-4 md:px-6 py-4">
+                                <div class="border-l-2 border-blue-200 pl-4 space-y-2">
+                                    <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Seguimiento de Intervención</p>
+                                    <div class="overflow-x-auto rounded-lg border shadow-sm">
+                                        <table class="w-full bg-white text-left border-collapse">
+                                            <thead class="bg-slate-50">
+                                                <tr>
+                                                    <th class="px-4 py-2 text-[9px] font-black text-slate-400 uppercase">Fecha</th>
+                                                    <th class="px-4 py-2 text-[9px] font-black text-slate-400 uppercase">Profesional</th>
+                                                    <th class="px-4 py-2 text-[9px] font-black text-slate-400 uppercase">Acción</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-slate-50">
+                                                @foreach($reg['acciones'] as $accion)
+                                                    <tr>
+                                                        <td class="px-4 py-2 text-xs font-bold text-slate-600">
+                                                            {{ \Carbon\Carbon::parse($accion->fecha)->format('d/m/Y') }}
+                                                        </td>
+                                                        <td class="px-4 py-2 text-xs font-bold text-slate-700">
+                                                            {{ $accion->usuario->name ?? 'Sin Asignar' }} </td>
+                                                        <td class="px-4 py-2 text-xs text-slate-600 italic">
+                                                            {{ $accion->descripcion }}
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    @endif
                     @empty
                         <tr><td colspan="4" class="py-20 text-center text-slate-400 italic">No hay intervenciones.</td></tr>
                     @endforelse
@@ -127,7 +161,7 @@
                 <thead class="bg-slate-50 border-b">
                     <tr>
                         <th class="px-6 py-4 text-xs font-black text-slate-500 uppercase">Fecha/Estado</th>
-                        <th class="px-6 py-4 text-xs font-black text-slate-500 uppercase">Motivo</th>
+                        <th class="px-6 py-4 text-xs font-black text-slate-500 uppercase">Derivado A</th>
                         <th class="px-6 py-4 text-xs font-black text-slate-500 uppercase">Derivado Por</th>
                         <th class="px-6 py-4 text-xs font-black text-slate-500 uppercase w-1/3">Detalle</th>
                         <th class="px-6 py-4 text-xs font-black text-slate-500 uppercase text-center">Docs</th>
@@ -140,7 +174,7 @@
                                 <div class="text-sm font-bold text-slate-700">{{ $der['fecha'] }}</div>
                                 <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase border {{ $der['color_estado'] }}">{{ $der['estado'] }}</span>
                             </td>
-                            <td class="px-6 py-5 text-sm font-black text-slate-800">{{ $der['motivo'] }}</td>
+                            <td class="px-6 py-5 text-sm font-black text-slate-800">{{ $der['profesional_derivado'] }}</td>
                             <td class="px-6 py-5">
                                 <div class="text-sm font-bold text-slate-700">{{ $der['profesional'] }}</div>
                                 <div class="text-[10px] text-orange-600 font-black uppercase">{{ $der['tipo'] }}</div>
@@ -158,6 +192,11 @@
                                 @endif
                             </td>
                         </tr>
+                         <tr class="hover:bg-slate-50/30 transition-colors">
+                            <td  class="px-6 py-5 text-sm font-bold text-slate-700">Conclusiones:</td>
+                            <td colspan="4" class="px-6 py-5 text-sm text-slate-600 italic leading-snug">{{ $der['conclusiones'] }}</td>
+                         </tr>
+
 
                         @if(count($der['acciones']) > 0)
                             <tr class="bg-orange-50/30">

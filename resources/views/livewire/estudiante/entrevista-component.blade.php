@@ -89,6 +89,13 @@
                 <span id="text-dictado">Dictar</span>
             </flux:button> --}}
 
+            {{-- Botón para abrir el modal --}}
+            <div class="mt-4 ml-4">
+                <flux:button icon="pencil-square" wire:click="abrirModalFirma" primary variant="filled" color="indigo">
+                    Firma Digital
+                </flux:button>
+            </div>
+
             {{-- Botón de Mejorar con IA --}}
             <flux:button
                 variant="subtle"
@@ -179,224 +186,188 @@
         </div> --}}
 
         {{-- Botón de Guardar --}}
-        <flux:button variant="primary" wire:click="procesarGuardado">
-            Guardar Entrevista
-        </flux:button>
-    </div>
+        {{-- <div class="mb-6 p-4 bg-zinc-50 dark:bg-zinc-800/50 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg"> --}}
+            {{-- ADJUNTAR DOCUMENTOS MANUALES Y EVIDENCIAS --}}
+            <div class="mb-6 p-4 bg-zinc-50 dark:bg-zinc-800/50 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg">
+                <flux:text class="text-sm font-semibold uppercase tracking-wider mb-2">
+                    <i class="fa-solid fa-paperclips mr-1"></i> Respaldos y Evidencias (Opcional)
+                </flux:text>
+                <flux:text class="text-xs text-zinc-500 mb-3">
+                    Puede seleccionar múltiples archivos (Entrevista física, certificados, fotos, etc).
+                </flux:text>
 
-   {{-- Modal de Firma Adaptable (Controlado por Alpine)
-    <flux:modal wire:model="modalFirma" class="w-full h-full md:w-[800px] md:h-[600px] p-0">
+                {{-- LO NUEVO: Se agregó 'multiple' --}}
+                <flux:input type="file" wire:model="archivo_adjunto" accept=".pdf,.jpg,.jpeg,.png" multiple />
 
-        <div x-data="firmaDigital()" class="flex flex-col h-full bg-white dark:bg-zinc-900 shadow-2xl">
+                <div wire:loading wire:target="archivo_adjunto" class="text-xs text-indigo-500 mt-2 font-semibold">
+                    <i class="fa-solid fa-spinner fa-spin mr-1"></i> Cargando documentos al servidor...
+                </div>
 
-            <div class="p-4 border-b flex justify-between items-center bg-slate-50 dark:bg-zinc-800">
-                <flux:heading size="lg">Panel de Firma Digital</flux:heading>
+                {{-- LO NUEVO: El error ahora vigila el arreglo 'archivo_adjunto.*' --}}
+                @error('archivo_adjunto.*')
+                    <span class="text-red-500 text-xs font-semibold block mt-1">{{ $message }}</span>
+                @enderror
+            </div>
+            <flux:button variant="primary" wire:click="guardar" wire:loading.attr="disabled" wire:target="guardar, archivo_adjunto">
+                <span wire:loading.remove wire:target="guardar">Guardar Entrevista</span>
+                <span wire:loading wire:target="guardar"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Guardando...</span>
+            </flux:button>
+        {{-- </div> --}}
+
+   {{-- Modal de Firma Adaptable (Controlado por Alpine) --}}
+    <flux:modal wire:model="modalFirma" class="w-full md:w-[800px] h-auto p-0" x-data="firmaDigital()">
+        <div class="flex flex-col bg-white dark:bg-zinc-900">
+            <!-- Cabecera -->
+            <div class="p-4 border-b flex justify-between items-center">
+                <flux:heading size="lg">Firma del Entrevistado</flux:heading>
                 <flux:button icon="x-mark" variant="ghost" wire:click="$set('modalFirma', false)" />
             </div>
 
-            <div class="flex-grow p-4 bg-slate-100 dark:bg-zinc-950 overflow-hidden flex flex-col">
-                <div x-ref="wrapper" class="flex-grow w-full bg-white border-2 border-dashed border-slate-300 rounded-lg shadow-inner overflow-hidden relative">
-                    <canvas x-ref="canvas"
-                        class="absolute top-0 left-0 touch-none"
-                        style="cursor: crosshair;">
-                    </canvas>
+            <!-- Área de Firma: El div padre es CRUCIAL -->
+            <div class="p-4 bg-slate-50 dark:bg-zinc-950">
+                <div x-ref="wrapper" class="w-full h-64 bg-white border-2 border-dashed border-slate-300 rounded-lg relative">
+                    <canvas x-ref="canvas" class="absolute top-0 left-0 w-full h-full touch-none"></canvas>
                 </div>
             </div>
 
-            <div class="p-4 border-t flex gap-4 bg-white dark:bg-zinc-800">
-                <flux:button variant="ghost" class="flex-1" @click="limpiarFirma()">
-                    <i class="fa-solid fa-eraser mr-2"></i> Limpiar
-                </flux:button>
-                <flux:button variant="primary" color="green" class="flex-1" @click="guardarFirma()">
-                    <i class="fa-solid fa-check mr-2"></i> Confirmar Firma
-                </flux:button>
+            <!-- Botones -->
+            <div class="p-4 border-t flex gap-4">
+                <flux:button variant="ghost" class="flex-1" @click="limpiarFirma()">Limpiar</flux:button>
+                <flux:button variant="primary" color="green" class="flex-1" @click="guardarFirma()">Confirmar Firma</flux:button>
             </div>
-
         </div>
-    </flux:modal>--}}
+    </flux:modal>
 
 </div>
 
 
-    {{-- Scripts de Firma --}}
-<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
-<script>
-   {{-- Script de Signature Pad --}}
-    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
-
     {{-- Lógica de Alpine.js --}}
-    <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('firmaDigital', () => ({
-                pad: null,
-                resizeObserver: null,
-
-                init() {
-                    this.pad = new SignaturePad(this.$refs.canvas, {
-                        backgroundColor: 'rgb(255, 255, 255)',
-                        penColor: 'rgb(0, 0, 0)',
-                        velocityFilterWeight: 0.7
-                    });
-
-                    // El ResizeObserver mide los píxeles REALES del contenedor, ignorando animaciones
-                    this.resizeObserver = new ResizeObserver((entries) => {
-                        for (let entry of entries) {
-                            const width = entry.contentRect.width;
-                            const height = entry.contentRect.height;
-
-                            // Si el modal está visible y tiene tamaño, ajustamos
-                            if (width > 0 && height > 0) {
-                                this.ajustarCanvas(width, height);
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('firmaDigital', () => ({
+            pad: null,
+            init() {
+                // Escuchamos cuando el modal se abre
+                this.$watch('$wire.modalFirma', (value) => {
+                    if (value) {
+                        this.$nextTick(() => {
+                            if (!this.pad) {
+                                this.pad = new SignaturePad(this.$refs.canvas, {
+                                    backgroundColor: 'rgb(255, 255, 255)',
+                                    penColor: 'rgb(0, 0, 0)'
+                                });
                             }
-                        }
-                    });
-
-                    // Observamos el DIV padre, NO el canvas
-                    this.resizeObserver.observe(this.$refs.wrapper);
-
-                    // Limpiamos la firma si el modal se cierra
-                    this.$watch('$wire.modalFirma', (abierto) => {
-                        if (!abierto) this.pad.clear();
-                    });
-                },
-
-                ajustarCanvas(width, height) {
-                    const canvas = this.$refs.canvas;
-                    const ratio = Math.max(window.devicePixelRatio || 1, 1);
-                    const data = this.pad.toData(); // Guardar trazos previos
-
-                    // 1. EL SECTRETO PARA EVITAR DESFASES: Forzamos el CSS en píxeles duros
-                    canvas.style.width = width + 'px';
-                    canvas.style.height = height + 'px';
-
-                    // 2. Ajustamos la resolución interna para pantallas HD (Móviles/Retina)
-                    canvas.width = width * ratio;
-                    canvas.height = height * ratio;
-
-                    // 3. Escalamos el contexto
-                    canvas.getContext("2d").scale(ratio, ratio);
-
-                    this.pad.clear();
-                    if (data && data.length > 0) {
-                        this.pad.fromData(data); // Restauramos trazos
+                        });
                     }
-                },
-
-                limpiarFirma() {
-                    this.pad.clear();
-                },
-
-                guardarFirma() {
-                    if (this.pad.isEmpty()) {
-                        Swal.fire('Atención', 'Por favor, realice una firma primero.', 'warning');
-                        return;
-                    }
-
-                    this.$wire.set('firma_digital', this.pad.toDataURL());
-                    this.$wire.set('modalFirma', false);
-
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Firma guardada',
-                        timer: 1000,
-                        showConfirmButton: false
-                    });
+                });
+            },
+            limpiarFirma() {
+                if (this.pad) this.pad.clear();
+            },
+            guardarFirma() {
+                if (!this.pad || this.pad.isEmpty()) {
+                    Swal.fire({ icon: 'warning', title: 'Atención', text: 'Firma vacía' });
+                    return;
                 }
-            }));
-        });
-
-    //Dictdo por voz
-
-    let recognition;
-    let dictando = false;
-
-    function toggleDictado() {
-        const btn = document.getElementById('btn-dictado');
-        const icon = document.getElementById('icon-dictado');
-        const label = document.getElementById('text-dictado');
-        const textarea = document.getElementById('detalle-entrevista');
-
-        if (!dictando) {
-            // Configuración del motor de voz
-            window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-            if (!window.SpeechRecognition) {
-                alert("Tu navegador no soporta dictado por voz. Usa Chrome o Edge.");
-                return;
+                @this.call('recibirFirmaYGuardar', this.pad.toDataURL('image/png'));
             }
-
-            recognition = new SpeechRecognition();
-            recognition.lang = 'es-ES';
-            recognition.interimResults = true; // Fundamental para ver resultados previos
-            recognition.continuous = true;     // No se detiene en pausas
-
-            recognition.onstart = () => {
-                dictando = true;
-                // Feedback visual: Botón rojo y parpadeo
-                btn.classList.add('bg-red-600', 'text-white');
-                icon.classList.add('animate-pulse');
-                label.innerText = "Detener";
-            };
-
-            recognition.onresult = (event) => {
-                let textoFinal = '';
-
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    // Solo procesamos los resultados finales para evitar duplicados "fantasma"
-                    if (event.results[i].isFinal) {
-                        const transcripcion = event.results[i][0].transcript;
-
-                        // Concatenamos al valor actual del textarea
-                        const espacio = textarea.value.length > 0 ? ' ' : '';
-                        const nuevoTexto = textarea.value + espacio + transcripcion;
-
-                        // Actualización inmediata del DOM
-                        textarea.value = nuevoTexto;
-
-                        // Sincronización con la propiedad 'detalle' en Livewire
-                        @this.set('detalle', nuevoTexto);
-                    }
-                }
-
-                // Mantiene el scroll al final si el texto excede el tamaño
-                textarea.scrollTop = textarea.scrollHeight;
-            };
-
-            recognition.onerror = (event) => {
-                console.error("Error en dictado:", event.error);
-                if(event.error === 'not-allowed') {
-                    alert("Acceso al micrófono denegado. Revisa la configuración de seguridad del navegador.");
-                }
-                stopDictado();
-            };
-
-            recognition.onend = () => {
-                // Si el dictado sigue activo pero el motor se apaga (por silencio largo), reiniciamos
-                if (dictando) recognition.start();
-            };
-
-            recognition.start();
-        } else {
-            stopDictado();
-        }
-    }
-
-    function stopDictado() {
-        if (recognition) {
-            recognition.onend = null; // Evitamos reinicio automático al apagar
-            recognition.stop();
-        }
-        dictando = false;
-
-        const btn = document.getElementById('btn-dictado');
-        const icon = document.getElementById('icon-dictado');
-        const label = document.getElementById('text-dictado');
-
-        // Restaurar estado visual original
-        btn.classList.remove('bg-red-600', 'text-white');
-        icon.classList.remove('animate-pulse');
-        label.innerText = "Dictar";
-    }
+        }));
+    });
 </script>
+    <script>
+
+    //  Dictdo por voz
+
+        let recognition;
+        let dictando = false;
+
+        function toggleDictado() {
+            const btn = document.getElementById('btn-dictado');
+            const icon = document.getElementById('icon-dictado');
+            const label = document.getElementById('text-dictado');
+            const textarea = document.getElementById('detalle-entrevista');
+
+            if (!dictando) {
+                // Configuración del motor de voz
+                window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+                if (!window.SpeechRecognition) {
+                    alert("Tu navegador no soporta dictado por voz. Usa Chrome o Edge.");
+                    return;
+                }
+
+                recognition = new SpeechRecognition();
+                recognition.lang = 'es-ES';
+                recognition.interimResults = true; // Fundamental para ver resultados previos
+                recognition.continuous = true;     // No se detiene en pausas
+
+                recognition.onstart = () => {
+                    dictando = true;
+                    // Feedback visual: Botón rojo y parpadeo
+                    btn.classList.add('bg-red-600', 'text-white');
+                    icon.classList.add('animate-pulse');
+                    label.innerText = "Detener";
+                };
+
+                recognition.onresult = (event) => {
+                    let textoFinal = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        // Solo procesamos los resultados finales para evitar duplicados "fantasma"
+                        if (event.results[i].isFinal) {
+                            const transcripcion = event.results[i][0].transcript;
+
+                            // Concatenamos al valor actual del textarea
+                            const espacio = textarea.value.length > 0 ? ' ' : '';
+                            const nuevoTexto = textarea.value + espacio + transcripcion;
+
+                            // Actualización inmediata del DOM
+                            textarea.value = nuevoTexto;
+
+                            // Sincronización con la propiedad 'detalle' en Livewire
+                            @this.set('detalle', nuevoTexto);
+                        }
+                    }
+
+                    // Mantiene el scroll al final si el texto excede el tamaño
+                    textarea.scrollTop = textarea.scrollHeight;
+                };
+
+                recognition.onerror = (event) => {
+                    console.error("Error en dictado:", event.error);
+                    if(event.error === 'not-allowed') {
+                        alert("Acceso al micrófono denegado. Revisa la configuración de seguridad del navegador.");
+                    }
+                    stopDictado();
+                };
+
+                recognition.onend = () => {
+                    // Si el dictado sigue activo pero el motor se apaga (por silencio largo), reiniciamos
+                    if (dictando) recognition.start();
+                };
+
+                recognition.start();
+            } else {
+                stopDictado();
+            }
+        }
+
+        function stopDictado() {
+            if (recognition) {
+                recognition.onend = null; // Evitamos reinicio automático al apagar
+                recognition.stop();
+            }
+            dictando = false;
+
+            const btn = document.getElementById('btn-dictado');
+            const icon = document.getElementById('icon-dictado');
+            const label = document.getElementById('text-dictado');
+
+            // Restaurar estado visual original
+            btn.classList.remove('bg-red-600', 'text-white');
+            icon.classList.remove('animate-pulse');
+            label.innerText = "Dictar";
+        }
+    </script>
 
 </div>

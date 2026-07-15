@@ -19,6 +19,7 @@ class PortalApoderadoComponent extends Component
 
     // Paso 2: Formulario Apoderados
     public $apoderados = [];
+    public $datosEstudiante = [];
 
     public function ingresar()
     {
@@ -56,6 +57,16 @@ class PortalApoderadoComponent extends Component
             // Si no tiene, agregamos un formulario en blanco
             $this->agregarApoderado();
         }
+
+        $this->datosEstudiante = [
+            'nombre'           => $this->estudiante->nombre,
+            'apellido'         => $this->estudiante->apellido,
+            'social'           => $this->estudiante->social,
+            'fecha_nacimiento' => $this->estudiante->fecha_nacimiento,
+            'email'            => $this->estudiante->email,
+            'telefono'         => $this->estudiante->telefono,
+            'domicilio'        => $this->estudiante->domicilio,
+        ];
 
         $this->paso = 2; // Avanzamos al formulario
     }
@@ -123,6 +134,14 @@ class PortalApoderadoComponent extends Component
     {
         // 1. Definimos las reglas base (los campos de texto)
         $rules = [
+            'datosEstudiante.nombre'           => 'required|string',
+            'datosEstudiante.apellido'         => 'required|string',
+            'datosEstudiante.social'           => 'nullable|string',
+            'datosEstudiante.fecha_nacimiento' => 'nullable|date',
+            'datosEstudiante.email'            => 'nullable|email',
+            'datosEstudiante.telefono'         => 'nullable|string',
+            'datosEstudiante.domicilio'        => 'nullable|string',
+
             'apoderados.*.rut'       => 'required|string',
             'apoderados.*.apoderado' => 'required|string',
             'apoderados.*.telefono'  => 'required|string',
@@ -139,6 +158,18 @@ class PortalApoderadoComponent extends Component
             'apoderados.*.correo.email'       => 'El correo no es válido.',
             'apoderados.*.direccion.required' => 'La dirección es obligatoria.',
         ];
+
+        $this->validate($rules);
+
+        $this->estudiante->update([
+            'nombre'           => $this->datosEstudiante['nombre'],
+            'apellido'         => $this->datosEstudiante['apellido'],
+            'social'           => $this->datosEstudiante['social'],
+            'fecha_nacimiento' => $this->datosEstudiante['fecha_nacimiento'],
+            'email'            => $this->datosEstudiante['email'],
+            'telefono'         => $this->datosEstudiante['telefono'],
+            'domicilio'        => $this->datosEstudiante['domicilio'],
+        ]);
 
         // 3. VALIDACIÓN DINÁMICA DEL CARNET
         foreach ($this->apoderados as $datos) {

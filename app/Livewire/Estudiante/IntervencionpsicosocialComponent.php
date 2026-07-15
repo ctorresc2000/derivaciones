@@ -192,36 +192,85 @@ class IntervencionpsicosocialComponent extends Component
         $this->via_ingreso_id = $nuevaVia->id;
     }
 
+    // public function mejorarTextoIA()
+    // {
+    //     if (empty($this->descripcion_derivacion)) return;
+    //     $this->mejorando = true;
+
+    //     try {
+    //         $response = Http::withHeaders([
+    //             'Authorization' => 'Bearer ' . env('GROQ_API_KEY'),
+    //             'Content-Type' => 'application/json',
+    //         ])->post('https://api.groq.com/openai/v1/chat/completions', [
+    //             'model' => 'llama-3.3-70b-versatile', // Modelo actualizado y vigente
+    //             'messages' => [
+    //                 [
+    //                     'role' => 'system',
+    //                     'content' => 'Eres un corrector de estilo profesional para reportes escolares.'
+    //                 ],
+    //                 [
+    //                     'role' => 'user',
+    //                     'content' => 'Mejora la redacción y ortografía de este texto, manteniéndolo formal: ' . $this->descripcion_derivacion
+    //                 ]
+    //             ],
+    //             'temperature' => 0.5,
+    //         ]);
+
+    //         if ($response->successful()) {
+    //             $this->descripcion_derivacion = $response->json()['choices'][0]['message']['content'];
+    //             $this->dispatch('swal', ['icon' => 'success', 'title' => '¡Mejorado con éxito!']);
+    //         } else {
+    //             // Si Groq devuelve error, aquí veremos qué modelo sugiere usar
+    //             $errorDetail = $response->json()['error']['message'] ?? 'Error desconocido';
+    //             throw new \Exception($errorDetail);
+    //         }
+    //     } catch (\Exception $e) {
+    //         $this->dispatch('swal', ['icon' => 'error', 'title' => 'Fallo la IA', 'text' => $e->getMessage()]);
+    //     }
+
+    //     $this->mejorando = false;
+    // }
+
     public function mejorarTextoIA()
     {
         if (empty($this->descripcion_derivacion)) return;
         $this->mejorando = true;
 
         try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('GROQ_API_KEY'),
+            // 1. Preparamos el texto uniendo las instrucciones con tu variable
+            $prompt = "Eres un corrector de estilo profesional para reportes escolares.\n\n" .
+                      "Mejora la redacción y ortografía de este texto, manteniéndolo formal: " . $this->detalle;
+
+            // 2. Hacemos la petición a la API de Gemini (modelo 2.5 flash)
+            $response = Http::withoutVerifying()->withHeaders([
                 'Content-Type' => 'application/json',
-            ])->post('https://api.groq.com/openai/v1/chat/completions', [
-                'model' => 'llama-3.3-70b-versatile', // Modelo actualizado y vigente
-                'messages' => [
+            ])->post('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . env('GEMINI_API_KEY'), [
+                'contents' => [
                     [
-                        'role' => 'system',
-                        'content' => 'Eres un corrector de estilo profesional para reportes escolares.'
-                    ],
-                    [
-                        'role' => 'user',
-                        'content' => 'Mejora la redacción y ortografía de este texto, manteniéndolo formal: ' . $this->descripcion_derivacion
+                        'parts' => [
+                            ['text' => $prompt]
+                        ]
                     ]
                 ],
-                'temperature' => 0.5,
+                'generationConfig' => [
+                    'temperature' => 0.5, // Mantenemos tu configuración original
+                ]
             ]);
 
+            // 3. Verificamos la respuesta
             if ($response->successful()) {
-                $this->descripcion_derivacion = $response->json()['choices'][0]['message']['content'];
-                $this->dispatch('swal', ['icon' => 'success', 'title' => '¡Mejorado con éxito!']);
+                // Extracción de texto usando la estructura JSON específica de Gemini
+                $data = $response->json();
+
+                if (isset($data['candidates'][0]['content']['parts'][0]['text'])) {
+                    $this->descripcion_derivacion = $data['candidates'][0]['content']['parts'][0]['text'];
+                    $this->dispatch('swal', ['icon' => 'success', 'title' => '¡Mejorado con éxito!']);
+                } else {
+                    throw new \Exception('Gemini no devolvió ningún texto válido.');
+                }
             } else {
-                // Si Groq devuelve error, aquí veremos qué modelo sugiere usar
-                $errorDetail = $response->json()['error']['message'] ?? 'Error desconocido';
+                // Captura de errores específica de la API de Google
+                $errorDetail = $response->json()['error']['message'] ?? 'Error desconocido en el servidor de Gemini';
                 throw new \Exception($errorDetail);
             }
         } catch (\Exception $e) {

@@ -52,7 +52,8 @@ final class EntrevistasTable extends PowerGridComponent
                 // Concatenamos para ordenar alfabéticamente por apellido
                 \DB::raw('CONCAT(estudiantes.apellido, " ", estudiantes.nombre) as estudiante_orden')
             ])
-            ->with(['user']); // Las relaciones simples se mantienen con with
+            ->with(['user']) // Las relaciones simples se mantienen con with
+            ->orderBy('entrevistas.fecha', 'desc');
     }
 
     public function relationSearch(): array
@@ -117,7 +118,9 @@ final class EntrevistasTable extends PowerGridComponent
             // Esta es la nueva columna
             Column::make('Entrevistado','tipo_entrevistado', 'es_apoderado') // El campo booleano de tu tabla
                 ->sortable()
-                ->searchable(),
+                ->searchable()
+                ->headerAttribute('class', 'hidden md:table-cell')
+                ->bodyAttribute('class', 'hidden md:table-cell'),
 
             Column::make('Estudiante', 'estudiante_orden') // Sin el espacio al final
                 ->sortable()
@@ -129,14 +132,20 @@ final class EntrevistasTable extends PowerGridComponent
 
             Column::make('Entrevistador', 'user_nombre','user_id') // Sin el espacio al final
                 ->sortable()
-                ->searchable(),
+                ->searchable()
+                ->headerAttribute('class', 'hidden md:table-cell')
+                ->bodyAttribute('class', 'hidden md:table-cell'),
+
             Column::make('Nombre apoderado', 'nombre_apoderado')
                 ->sortable()
-                ->searchable(),
+                ->searchable()->headerAttribute('class', 'hidden md:table-cell')
+                ->bodyAttribute('class', 'hidden md:table-cell'),
 
             Column::make('Motivo', 'motivo')
                 ->sortable()
-                ->searchable(),
+                ->searchable()
+                ->headerAttribute('class', 'hidden md:table-cell')
+                ->bodyAttribute('class', 'hidden md:table-cell'),
 
 
             // Column::make('Detalle', 'detalle')
@@ -154,7 +163,10 @@ final class EntrevistasTable extends PowerGridComponent
         return [
             Filter::boolean('es_apoderado')
                 ->label('Apoderado', 'Estudiante'),
-            Filter::datepicker('fecha'),
+            Filter::datepicker('fecha')
+                ->params([
+                    'enableTime' => false,
+                ]),
 
             // 3. Filtro de Curso: Usamos 'entrevistas.curso_id' para evitar ambigüedad
             Filter::select('curso_nombre', 'entrevistas.curso_id')
@@ -215,6 +227,14 @@ final class EntrevistasTable extends PowerGridComponent
                 ->class('p-2 rounded text-white bg-blue-500 hover:bg-blue-600')
                 // Cambiamos el dispatch por url()
                 ->dispatch('imprimirPDF', ['id' => $row->id]),
+
+            Button::add('arvhivos')
+                ->slot('<i class="fa-solid fa-camera"></i>')
+                ->id('btn-print-' . $row->id)
+                ->tooltip('Subir Imágenes')
+                ->class('p-2 rounded text-white bg-green-500 hover:bg-green-600')
+                // Cambiamos el dispatch por url()
+                ->route('entrevistas.camara', ['id' => $row->id]),
 
             // Button::add('edit')
             //     ->slot('Edit: '.$row->id)

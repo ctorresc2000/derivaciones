@@ -80,15 +80,15 @@ final class EstudianteTable extends PowerGridComponent
 
     public function datasource(): Builder
     {
-        return Estudiante::query()->with('curso')->withCount('apoderados');;
+        return Estudiante::query()->with('curso')->withCount('apoderados');
     }
 
     public function relationSearch(): array
     {
         return [
-            'estudiante' => [
-                'nombre',
-            ],
+            // 'estudiante' => [
+            //     'nombre',
+            //]
         ];
     }
 
@@ -268,13 +268,13 @@ final class EstudianteTable extends PowerGridComponent
         $botones= [];
 
         if (Auth::user()->rol === "Administrador") {
-            $botones[]=
-                Button::add('edit')
-                ->slot('<i class="fa-solid fa-pen-to-square"></i>')
-                ->id('btn-edit-' . $row->id)
-                ->tooltip('Editar estudiante')
-                ->class('p-2 rounded bg-blue-500 text-white hover:bg-blue-600')
-                ->dispatch('edit', ['rowId' => $row->id]);
+            // $botones[]=
+            //     Button::add('edit')
+            //     ->slot('<i class="fa-solid fa-pen-to-square"></i>')
+            //     ->id('btn-edit-' . $row->id)
+            //     ->tooltip('Editar estudiante')
+            //     ->class('p-2 rounded bg-blue-500 text-white hover:bg-blue-600')
+            //     ->dispatch('edit', ['rowId' => $row->id]);
 
             $botones[]=
                 Button::add('toggle_estado')
@@ -294,36 +294,36 @@ final class EstudianteTable extends PowerGridComponent
             // Disparamos nuestro evento, exactamente igual a como lo haces con 'delete' o 'edit'
             ->dispatch('alternarDetalle', ['id' => $row->id]);
 
-        if ($row->estado === "Activo" && Auth::user()->rol==="Administrador" || Auth::user()->tipoProfesional->departamento === "Convivencia") {
-            $botones[]=Button::add('enviar')
-            ->slot('<i class="fa-solid fa-scale-balanced"></i>')
-            ->tooltip('Intervenir por Convivencia')
-            ->class('p-2 rounded bg-green-500 text-white hover:bg-green-600')
-            ->route('derivaciones', ['id' => $row->id]);
-        }
+        // if ($row->estado === "Activo" && Auth::user()->rol==="Administrador" || Auth::user()->tipoProfesional->departamento === "Convivencia") {
+        //     $botones[]=Button::add('enviar')
+        //     ->slot('<i class="fa-solid fa-scale-balanced"></i>')
+        //     ->tooltip('Intervenir por Convivencia')
+        //     ->class('p-2 rounded bg-green-500 text-white hover:bg-green-600')
+        //     ->route('derivaciones', ['id' => $row->id]);
+        // }
 
-        if ($row->estado === "Activo" && Auth::user()->rol==="Administrador" || Auth::user()->tipoProfesional->departamento === "Psicosocial") {
-            $botones[]=Button::add('psicosocial')
-                ->slot('<i class="fa-solid fa-hand-holding-heart"></i>')
-                ->tooltip('Intervenir por Psicosocial')
-                ->class('p-2 rounded bg-teal-500 text-white hover:bg-teal-600')
-                ->route('intervencionpsicosocial', ['id' => $row->id]);
-        }
+        // if ($row->estado === "Activo" && Auth::user()->rol==="Administrador" || Auth::user()->tipoProfesional->departamento === "Psicosocial") {
+        //     $botones[]=Button::add('psicosocial')
+        //         ->slot('<i class="fa-solid fa-hand-holding-heart"></i>')
+        //         ->tooltip('Intervenir por Psicosocial')
+        //         ->class('p-2 rounded bg-teal-500 text-white hover:bg-teal-600')
+        //         ->route('intervencionpsicosocial', ['id' => $row->id]);
+        // }
 
-        if ($row->estado === "Activo") {
-            $botones[]=Button::add('estudianteDerivado')
-                ->slot('<i class="fa-solid fa-file-export"></i> ')
-                ->tooltip('Derivar')
-                ->class('p-2 rounded bg-pink-500 text-white hover:bg-pink-600')
-                ->dispatch('abrirModalDerivacion', ['rowId' => $row->id]); // AQUÍ DISPARAMOS EL EVENTO
+        // if ($row->estado === "Activo") {
+        //     $botones[]=Button::add('estudianteDerivado')
+        //         ->slot('<i class="fa-solid fa-file-export"></i> ')
+        //         ->tooltip('Derivar')
+        //         ->class('p-2 rounded bg-pink-500 text-white hover:bg-pink-600')
+        //         ->dispatch('abrirModalDerivacion', ['rowId' => $row->id]); // AQUÍ DISPARAMOS EL EVENTO
 
-        }
+        // }
 
-        $botones[]=Button::add('redes')
-            ->slot('<i class="fa-solid fa-house-medical"></i>')
-            ->tooltip('Redes de Apoyo')
-            ->class('bg-emerald-500 text-white p-2 rounded-md')
-            ->dispatch('abrirModalRedes', ['estudianteId' => $row->id]);
+        // $botones[]=Button::add('redes')
+        //     ->slot('<i class="fa-solid fa-house-medical"></i>')
+        //     ->tooltip('Redes de Apoyo')
+        //     ->class('bg-emerald-500 text-white p-2 rounded-md')
+        //     ->dispatch('abrirModalRedes', ['estudianteId' => $row->id]);
 
         $botones[]=Button::add('apoderados')
             ->slot('<i class="fa-solid fa-restroom"></i>'. ' (' . $row->apoderados_count.')')
@@ -331,11 +331,11 @@ final class EstudianteTable extends PowerGridComponent
             ->class('bg-violet-500 text-white p-2 rounded-md')
             ->dispatch('abrirModalApoderados', ['estudianteId' => $row->id]);
 
-        $botones[]=Button::add('historial')
-            ->slot('<i class="fa-solid fa-clock-rotate-left"></i> ')
-            ->tooltip('Historial Estudiante')
-            ->class('p-2 rounded bg-zinc-500 text-white hover:bg-zinc-600')
-            ->route('estudiante.historial', ['id' => $row->id]); // <-- Cambiamos la ruta aquí
+        // $botones[]=Button::add('historial')
+        //     ->slot('<i class="fa-solid fa-clock-rotate-left"></i> ')
+        //     ->tooltip('Historial Estudiante')
+        //     ->class('p-2 rounded bg-zinc-500 text-white hover:bg-zinc-600')
+        //     ->route('estudiante.historial', ['id' => $row->id]); // <-- Cambiamos la ruta aquí
 
 
 

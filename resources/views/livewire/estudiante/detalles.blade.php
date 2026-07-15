@@ -59,6 +59,48 @@
             </p>
         </div>
 
+        <hr class="my-4 border-slate-200 dark:border-zinc-700">
+
+        {{-- NUEVA BARRA DE ACCIONES --}}
+        <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider mr-2">
+                Acciones:
+            </span>
+
+            {{-- Botón Editar (Azul) --}}
+            <button wire:click="$dispatch('editEstudiante', { rowId: {{ $row->id }} })"
+                    class="flex items-center justify-center p-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors tooltip" title="Editar Estudiante">
+                <i class="fa-solid fa-pen-to-square mr-2"></i><strong> Editar Estudiante</strong>
+            </button>
+
+            {{-- Botón Derivar (Verde) --}}
+            <a href="{{route('derivaciones', ['id' => $row->id])}}"
+                    class="flex items-center justify-center p-2 rounded bg-emerald-500 text-white hover:bg-emerald-600 transition-colors" title="Intervenir por Convivencia">
+                <i class="fa-solid fa-scale-balanced mr-2"></i> Intervenir por Convivencia
+            </a>
+
+            <a href="{{route('intervencionpsicosocial', ['id' => $row->id])}}"
+                    class="flex items-center justify-center p-2 rounded bg-teal-500 text-white hover:bg-teal-600 transition-colors" title="Intervenir por Psicosocial">
+                <i class="fa-solid fa-hand-holding-heart"></i> <span class="ml-2">Intervenir por Psicosocial</span>
+            </a>
+
+            {{-- Botón Redes de Apoyo (Morado) --}}
+            <button wire:click="$dispatch('abrirModalRedes', { estudianteId: {{ $row->id }} })"
+                class="flex items-center justify-center p-2 rounded bg-purple-500 text-white hover:bg-purple-600 transition-colors" title="Redes de Apoyo">
+                <i class="fa-solid fa-house-medical"></i> <span class="ml-2">Redes de Apoyo</span>
+            </button>
+            <button wire:click="$dispatch('abrirModalDerivacion', {rowId: {{ $row->id }} })"
+                class="flex items-center justify-center p-2 rounded bg-pink-500 text-white hover:bg-pink-600 transition-colors" title="Derivar Estudiante">
+                <i class="fa-solid fa-file-export"></i> <span class="ml-2">Derivar Estudiante</span>
+            </button>
+            <a href="{{route('estudiante.historial', ['id' => $row->id])}}"
+                    class="flex items-center justify-center p-2 rounded bg-zinc-500 text-white hover:bg-zinc-600 transition-colors" title="Historial Estudiante">
+                '<i class="fa-solid fa-clock-rotate-left"></i> <span class="ml-2">Ver Historial Estudiante</span>
+            </a>
+
+
+        </div>
+
     </div>
 
 

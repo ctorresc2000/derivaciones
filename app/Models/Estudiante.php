@@ -4,9 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Traits\HasDocuments; // 1. Importas el Trait
+// use Spatie\Activitylog\Traits\LogsActivity;
+// use Spatie\Activitylog\LogOptions;
+
+use App\Traits\RegistraAuditoria;
+
 
 class Estudiante extends Model
 {
+    //use LogsActivity;
+
+    use RegistraAuditoria;
 
     use HasDocuments; // 2. Lo usas dentro de la clase
 
@@ -52,4 +60,12 @@ class Estudiante extends Model
     {
         return $this->belongsToMany(Apoderado::class);
     }
+
+    // public function getActivitylogOptions(): LogOptions
+    // {
+    //     return LogOptions::defaults()
+    //         ->logAll() // Le dice que vigile TODAS las columnas
+    //         ->logOnlyDirty() // IMPORTANTE: Solo guarda si realmente hubo un cambio
+    //         ->dontSubmitEmptyLogs(); // No guarda basura si alguien le da a "Guardar" sin cambiar nada
+    // }
 }

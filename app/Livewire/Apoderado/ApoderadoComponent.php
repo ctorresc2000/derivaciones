@@ -50,6 +50,14 @@ class ApoderadoComponent extends Component
             // syncWithoutDetaching evita que se duplique si por error le das dos veces clic.
             $this->idestudianteSeleccionado->estudiantes()->syncWithoutDetaching([$estudianteId]);
 
+            $estudianteAsignado = \App\Models\Estudiante::find($estudianteId);
+            $nombreEstudiante = $estudianteAsignado ? "{$estudianteAsignado->nombre} {$estudianteAsignado->apellido}" : "ID: {$estudianteId}";
+
+            activity()
+                ->causedBy(auth()->user())
+                ->performedOn($this->idestudianteSeleccionado) // El sujeto es el apoderado
+                ->log("Vinculó a este apoderado con el estudiante: {$nombreEstudiante}");
+
             // 3. Mostramos el mensaje de éxito
             $this->dispatch('swal', [
                 'icon' => 'success',
@@ -60,6 +68,36 @@ class ApoderadoComponent extends Component
 
             // 4. Cerramos el modal de asignación y refrescamos la tabla de apoderados
             $this->modalEstudiante = false;
+            $this->dispatch('refreshTable');
+        }
+    }
+
+    public function desvincularEstudiante($apoderadoId, $estudianteId)
+    {
+        $apoderado = Apoderado::find($apoderadoId);
+
+        if ($apoderado) {
+            // 1. Quitamos la relación en la tabla pivote
+            $apoderado->estudiantes()->detach($estudianteId);
+
+            // 2. EL HELPER MANUAL DE AUDITORÍA
+            $estudianteAsignado = \App\Models\Estudiante::find($estudianteId);
+            $nombreEstudiante = $estudianteAsignado ? "{$estudianteAsignado->nombre} {$estudianteAsignado->apellido}" : "ID: {$estudianteId}";
+
+            activity()
+                ->causedBy(auth()->user())
+                ->performedOn($apoderado) // El sujeto auditado es el apoderado
+                ->log("Desvinculó a este apoderado del estudiante: {$nombreEstudiante}");
+
+            // 3. Mostramos la alerta de éxito
+            $this->dispatch('swal', [
+                'icon' => 'success',
+                'title' => 'Desvinculado',
+                'text' => 'El estudiante fue removido de este apoderado correctamente.',
+                'timer' => 2000
+            ]);
+
+            // 4. Refrescamos la tabla (o la vista donde muestras los hijos del apoderado)
             $this->dispatch('refreshTable');
         }
     }
@@ -84,7 +122,7 @@ class ApoderadoComponent extends Component
             'domicilio'=>'required',
             'telefono'=>'required',
             'tipo_apoderado'=>'required',
-            'carnet_apoderado' => 'file|max:5120|mimes:pdf,jpg,jpeg,png,doc,docx',
+            'carnet_apoderado' => 'nullable|file|max:5120|mimes:pdf,jpg,jpeg,png,doc,docx',
         ]);
 
         $nuevoApoderado = Apoderado::create([

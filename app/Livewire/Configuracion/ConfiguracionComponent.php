@@ -8,10 +8,17 @@ use App\Models\Configuracion;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\On;
+use App\Models\User;
+
+use Spatie\Activitylog\Models\Activity;
 
 class ConfiguracionComponent extends Component
 {
     public $archivoLlenado;
+
+    public $mesFiltro;
+    public $usuarioFiltro = '';
+
     use WithFileUploads; // <- Habilitamos la subida de archivos
 
     // Declaramos las variables que hacen match con los wire:model de tu vista
@@ -29,6 +36,8 @@ class ConfiguracionComponent extends Component
     {
         // Buscamos si ya existe una configuración en la base de datos
         $config = Configuracion::first();
+
+        $this->mesFiltro = date('Y-m');
 
         // Si existe, llenamos los campos del formulario con esos datos
         if ($config) {
@@ -102,7 +111,33 @@ class ConfiguracionComponent extends Component
 
     public function render()
     {
-        return view('livewire.configuracion.configuracion-component');
+        // 1. Iniciamos la consulta base
+        $query = Activity::with(['causer', 'subject'])->latest();
+
+        // 2. Filtro por Mes
+        if (!empty($this->mesFiltro)) {
+            $partes = explode('-', $this->mesFiltro);
+            if (count($partes) == 2) {
+                $query->whereYear('created_at', $partes[0])
+                      ->whereMonth('created_at', $partes[1]);
+            }
+        }
+
+        // 3. NUEVO: Filtro por Usuario
+        if (!empty($this->usuarioFiltro)) {
+            $query->where('causer_id', $this->usuarioFiltro);
+        }
+
+        // 4. Traemos los registros filtrados
+        $actividades = $query->take(300)->get();
+
+        // 5. Traemos la lista de todos los usuarios para llenar el Select
+        $usuarios = User::orderBy('name')->get(['id', 'name']);
+
+        return view('livewire.configuracion.configuracion-component', [
+            'actividades' => $actividades,
+            'usuarios'    => $usuarios // <-- Enviamos los usuarios a la vista
+        ]);
     }
 
     public function importarLlenado()

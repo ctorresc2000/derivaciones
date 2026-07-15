@@ -4,7 +4,7 @@
     <hr class="mb-3">
 
     <div class="flex justify-end px-6">
-        <flux:button wire:click="$set('abrirModal', true)">
+        <flux:button wire:click="abrirModal">
             <i class="fa-solid fa-circle-plus"></i><span class="ml-3">Nueva red de apoyo</span>
         </flux:button>
     </div>
@@ -14,7 +14,7 @@
 
     @livewire('tablas.redes-apoyo-table')
 
-    <flux:modal wire:model="abrirModal" :dismissible="false" :closable="false" class="md:w-1/2" max-width="7xl">
+    <flux:modal wire:model="modalRedes" :dismissible="false" :closable="false" class="md:w-1/2" max-width="7xl">
 
         <flux:card>
 

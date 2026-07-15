@@ -10,9 +10,14 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Component;
 use Illuminate\Support\Facades\Http;
+use Livewire\WithFileUploads;
 
 class EntrevistaComponent extends Component
 {
+
+    use WithFileUploads;
+
+    public $archivo_adjunto=[];
     public $curso_id, $estudiante_id, $es_apoderado = false, $nombre_apoderado;
     public $motivo, $detalle, $firma;
     public $fecha;
@@ -79,7 +84,7 @@ class EntrevistaComponent extends Component
     public function updatedCursoId($value)
     {
         // Al cambiar el curso, cargamos sus estudiantes
-        $this->estudiantes = Estudiante::where('curso_id', $value)->get();
+        $this->estudiantes = Estudiante::where('curso_id', $value)->orderBy('apellido','asc')->get();
         $this->estudiante_id = null;
     }
 
@@ -104,7 +109,7 @@ class EntrevistaComponent extends Component
 
         $nombreGuardar = $this->es_apoderado ? $this->nombre_apoderado : null;
 
-        Entrevista::create([
+        $nuevaEntrevista =Entrevista::create([
             'curso_id' => $this->curso_id,
             'estudiante_id' => $this->estudiante_id,
             'user_id' => auth()->id(),
@@ -113,12 +118,34 @@ class EntrevistaComponent extends Component
             'motivo' => $this->motivo,
             'detalle' => $this->detalle,
             'fecha' => $this->fecha,
-            'firma' => $this->firma,
+            //'firma' => $this->firma,
 
             'otp_codigo'       => $this->otp_verificado ? Cache::get('otp_' . $this->email_otp) : null,
             'otp_email'        => $this->otp_verificado ? $this->email_otp : null,
             'otp_verified_at'  => $this->otp_verificado ? now() : null,
         ]);
+
+        // 👇 NUEVO BLOQUE: Guardado de MÚLTIPLES documentos 👇
+        if (!empty($this->archivo_adjunto)) {
+            // Validamos que CADA archivo dentro del arreglo cumpla las reglas
+            $this->validate([
+                'archivo_adjunto.*' => 'file|max:10240|mimes:pdf,jpg,jpeg,png', // Máximo 10MB por archivo
+            ]);
+
+            // Recorremos cada archivo subido
+            foreach ($this->archivo_adjunto as $archivo) {
+                // Guardamos en la misma carpeta
+                $rutaGuardada = $archivo->store("documents/entrevistas/{$nuevaEntrevista->id}", 'public');
+
+                // Creamos el registro en la base de datos para CADA archivo
+                $nuevaEntrevista->documents()->create([
+                    'name'      => $archivo->getClientOriginalName(),
+                    'file_path' => $rutaGuardada,
+                    'mime_type' => $archivo->getClientMimeType(),
+                    'size'      => $archivo->getSize(),
+                ]);
+            }
+        }
 
         if($this->otp_verificado) {
             \Illuminate\Support\Facades\Cache::forget('otp_' . $this->email_otp);
@@ -162,36 +189,85 @@ class EntrevistaComponent extends Component
         ]);
     }
 
+    // public function mejorarTextoIA()
+    // {
+    //     if (empty($this->detalle)) return;
+    //     $this->mejorando = true;
+
+    //     try {
+    //         $response = Http::withHeaders([
+    //             'Authorization' => 'Bearer ' . env('GROQ_API_KEY'),
+    //             'Content-Type' => 'application/json',
+    //         ])->post('https://api.groq.com/openai/v1/chat/completions', [
+    //             'model' => 'llama-3.3-70b-versatile', // Modelo actualizado y vigente
+    //             'messages' => [
+    //                 [
+    //                     'role' => 'system',
+    //                     'content' => 'Eres un corrector de estilo profesional para reportes escolares.'
+    //                 ],
+    //                 [
+    //                     'role' => 'user',
+    //                     'content' => 'Mejora la redacción y ortografía de este texto, manteniéndolo formal: ' . $this->detalle
+    //                 ]
+    //             ],
+    //             'temperature' => 0.5,
+    //         ]);
+
+    //         if ($response->successful()) {
+    //             $this->detalle = $response->json()['choices'][0]['message']['content'];
+    //             $this->dispatch('swal', ['icon' => 'success', 'title' => '¡Mejorado con éxito!']);
+    //         } else {
+    //             // Si Groq devuelve error, aquí veremos qué modelo sugiere usar
+    //             $errorDetail = $response->json()['error']['message'] ?? 'Error desconocido';
+    //             throw new \Exception($errorDetail);
+    //         }
+    //     } catch (\Exception $e) {
+    //         $this->dispatch('swal', ['icon' => 'error', 'title' => 'Fallo la IA', 'text' => $e->getMessage()]);
+    //     }
+
+    //     $this->mejorando = false;
+    // }
+
     public function mejorarTextoIA()
     {
         if (empty($this->detalle)) return;
         $this->mejorando = true;
 
         try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('GROQ_API_KEY'),
+            // 1. Preparamos el texto uniendo las instrucciones con tu variable
+            $prompt = "Eres un corrector de estilo profesional para reportes escolares.\n\n" .
+                      "Mejora la redacción y ortografía de este texto, manteniéndolo formal: " . $this->detalle;
+
+            // 2. Hacemos la petición a la API de Gemini (modelo 2.5 flash)
+            $response = Http::withoutVerifying()->withHeaders([
                 'Content-Type' => 'application/json',
-            ])->post('https://api.groq.com/openai/v1/chat/completions', [
-                'model' => 'llama-3.3-70b-versatile', // Modelo actualizado y vigente
-                'messages' => [
+            ])->post('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . env('GEMINI_API_KEY'), [
+                'contents' => [
                     [
-                        'role' => 'system',
-                        'content' => 'Eres un corrector de estilo profesional para reportes escolares.'
-                    ],
-                    [
-                        'role' => 'user',
-                        'content' => 'Mejora la redacción y ortografía de este texto, manteniéndolo formal: ' . $this->detalle
+                        'parts' => [
+                            ['text' => $prompt]
+                        ]
                     ]
                 ],
-                'temperature' => 0.5,
+                'generationConfig' => [
+                    'temperature' => 0.5, // Mantenemos tu configuración original
+                ]
             ]);
 
+            // 3. Verificamos la respuesta
             if ($response->successful()) {
-                $this->detalle = $response->json()['choices'][0]['message']['content'];
-                $this->dispatch('swal', ['icon' => 'success', 'title' => '¡Mejorado con éxito!']);
+                // Extracción de texto usando la estructura JSON específica de Gemini
+                $data = $response->json();
+
+                if (isset($data['candidates'][0]['content']['parts'][0]['text'])) {
+                    $this->detalle = $data['candidates'][0]['content']['parts'][0]['text'];
+                    $this->dispatch('swal', ['icon' => 'success', 'title' => '¡Mejorado con éxito!']);
+                } else {
+                    throw new \Exception('Gemini no devolvió ningún texto válido.');
+                }
             } else {
-                // Si Groq devuelve error, aquí veremos qué modelo sugiere usar
-                $errorDetail = $response->json()['error']['message'] ?? 'Error desconocido';
+                // Captura de errores específica de la API de Google
+                $errorDetail = $response->json()['error']['message'] ?? 'Error desconocido en el servidor de Gemini';
                 throw new \Exception($errorDetail);
             }
         } catch (\Exception $e) {
@@ -206,4 +282,6 @@ class EntrevistaComponent extends Component
         $this->modalFirma = true;
         $this->dispatch('modal-firma-abierto');
     }
+
+
 }

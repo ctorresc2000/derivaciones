@@ -10,6 +10,8 @@ use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Schema;
 use App\Models\Configuracion;
+use Illuminate\Support\Facades\Blade; // <--- 1. Importar Blade
+use Illuminate\Support\Facades\Auth;  // <--- 2. Importar Auth
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -42,6 +44,17 @@ class AppServiceProvider extends ServiceProvider
             View::share('configuracion', null);
         }
 
+
+        // 3. Crear la directiva personalizada
+        Blade::if('rol', function (...$roles) {
+            // Verificamos que el usuario esté logueado
+            if (Auth::check()) {
+                // Comparamos el rol del usuario (asumiendo que tu columna se llama 'rol')
+                // con el arreglo de roles que enviaste desde la vista
+                return in_array(Auth::user()->rol, $roles);
+            }
+            return false;
+        });
 
     }
 

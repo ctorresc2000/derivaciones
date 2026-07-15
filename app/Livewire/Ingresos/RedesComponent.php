@@ -8,7 +8,7 @@ use App\Models\RedesApoyo;
 class RedesComponent extends Component
 {
 
-    public $abrirModal=false;
+    public $modalRedes=false;
     public $nombre;
     public $contacto;
     public $telefono;
@@ -21,7 +21,14 @@ class RedesComponent extends Component
 
     public function cerrarModal()
     {
-        $this->abrirModal = false;
+        $this->modalRedes = false;
+        $this->resetValidation();
+        $this->reset('nombre');
+    }
+    
+    public function abrirModal()
+    {
+        $this->modalRedes = true;
         $this->resetValidation();
         $this->reset('nombre');
     }
@@ -30,17 +37,17 @@ class RedesComponent extends Component
     {
         $this->validate([
             'nombre' => 'required',
-            'contacto'=>'required',
-            'telefono'=>'required',
-            'email'=>'required|email',
+            //'contacto'=>'required',
+            //'telefono'=>'required',
+            //'email'=>'required|email',
             ]);
 
           //  dd("Guardando red de apoyo: $this->nombre, contacto: $this->contacto, teléfono: $this->telefono");
             RedesApoyo::create([
                 'nombre' => $this->nombre,
-                'contacto' => $this->contacto,
-                'telefono' => $this->telefono,
-                'email' => $this->email,
+                //'contacto' => $this->contacto,
+                //'telefono' => $this->telefono,
+                //'email' => $this->email,
          ]);
 
         $this->dispatch('swal', [
@@ -50,7 +57,7 @@ class RedesComponent extends Component
             'timer' => 1500
         ]);
 
-        $this->abrirModal = false;
+        $this->modalRedes = false;
         $this->dispatch('refreshTable');
         $this->resetValidation();
         $this->reset('nombre','contacto','telefono','email');
