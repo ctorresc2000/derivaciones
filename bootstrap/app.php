@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'rol' => \App\Http\Middleware\CheckRol::class,
         ]);
+        $middleware->web(append: [
+        \App\Http\Middleware\EnsureUserIsActive::class,
+    ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // Bloque para capturar el error 419 (TokenMismatch)

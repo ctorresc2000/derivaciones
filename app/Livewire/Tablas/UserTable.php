@@ -61,7 +61,12 @@ final class UserTAble extends PowerGridComponent
             ->add('nombre_tipo_profesional', function (User $model) {
                 // Verificamos si tiene la relación asignada para no causar un error de "null"
                 return $model->tipoProfesional ? $model->tipoProfesional->tipo : 'Sin asignar';
-            });
+            })
+            ->add('estado_badge', function (User $model) {
+                return $model->estado == 'Activo'
+                    ? '<span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">Activo</span>'
+                    : '<span class="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded">Inactivo</span>';
+                });
     }
 
     public function columns(): array
@@ -89,7 +94,7 @@ final class UserTAble extends PowerGridComponent
                 ->sortable(),
                 //->editOnClick(),
 
-
+             Column::make('Estado', 'estado_badge', 'estado'),
 
             Column::action('Action')
         ];
@@ -126,6 +131,27 @@ final class UserTAble extends PowerGridComponent
 
     }
 
+
+    #[\Livewire\Attributes\On('toggleEstado')]
+    public function toggleEstado($rowId): void
+    {
+        // 1. Buscamos el usuario en la base de datos
+        $usuario = \App\Models\User::find($rowId);
+
+        if ($usuario) {
+            // 2. Invertimos el estado (si es 'Activo' pasa a 'Inactivo' y viceversa)
+            // Ajusta los valores según cómo los tengas guardados en tu BD
+            $usuario->estado = ($usuario->estado === 'Activo') ? 'Inactivo' : 'Activo';
+
+            // 3. Guardamos los cambios
+            $usuario->save();
+
+            // 4. Opcional: Despachamos un mensaje de éxito para que el usuario vea el cambio
+            // o notificamos a PowerGrid para refrescar la tabla
+            $this->dispatch('refreshTable');
+        }
+    }
+
     #[\Livewire\Attributes\On('delete')]
     public function delete($rowId): void
     {
@@ -150,12 +176,12 @@ final class UserTAble extends PowerGridComponent
                 ->class('p-2 rounded bg-blue-500 text-white hover:bg-blue-600')
                 ->dispatch('edit', ['rowId' => $row->id]),
 
-            Button::add('delete')
-                ->slot('<i class="fa-solid fa-trash"></i>')
-                ->id()
-                ->tooltip('Eliminar Usuario')
-                ->class('p-2 rounded bg-red-500 text-white hover:bg-red-600')
-                ->dispatch('delete', ['rowId' => $row->id]),
+            // Button::add('delete')
+            //     ->slot('<i class="fa-solid fa-trash"></i>')
+            //     ->id()
+            //     ->tooltip('Eliminar Usuario')
+            //     ->class('p-2 rounded bg-red-500 text-white hover:bg-red-600')
+            //     ->dispatch('delete', ['rowId' => $row->id]),
 
             Button::add('password')
                 ->slot('<i class="fa-solid fa-key"></i>')
@@ -163,6 +189,12 @@ final class UserTAble extends PowerGridComponent
                 ->tooltip('Editar Contraseña')
                 ->class('p-2 rounded bg-green-500 text-white hover:bg-green-600')
                 ->dispatch('password', ['rowId' => $row->id]),
+
+            Button::add('toggle_estado')
+                ->slot('<i class="fa-solid fa-user-check"></i>') // Cambia el icono según el estado si quieres
+                ->tooltip('Alternar Estado')
+                ->class('p-2 rounded bg-yellow-500 text-white')
+                ->dispatch('toggleEstado', ['rowId' => $row->id]),
 
             // Button::add('detail')
             //     ->slot('Detail')

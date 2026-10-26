@@ -107,10 +107,10 @@ final class EstudianteTable extends PowerGridComponent
             ->add('curso_nombre', fn (Estudiante $model) => $model->curso ? $model->curso->curso : 'Sin curso asignado')
             ->add('observaciones')
             ->add('estado_badge', function (Estudiante $model) {
-            return $model->estado == 'Activo'
-                ? '<span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">Activo</span>'
-                : '<span class="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded">Inactivo</span>';
-            })
+                return $model->estado == 'Activo'
+                    ? '<span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">Activo</span>'
+                    : '<span class="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded">Inactivo</span>';
+                })
             ->add('created_at')
             ->add('anio')
             ->add('matricula')
